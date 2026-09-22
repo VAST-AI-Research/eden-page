@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 620" role="img" aria-label="Method figure placeholder">
+  <rect width="1600" height="620" fill="#fbfbfe"/>
+  <g font-family="Inter, system-ui, sans-serif" font-size="26" fill="#5a628a" text-anchor="middle">
+    <g fill="none" stroke="#b9c0dd" stroke-width="2">
+      <rect x="80"   y="230" width="240" height="160" rx="16" fill="#eef0ff"/>
+      <rect x="440"  y="230" width="240" height="160" rx="16" fill="#e9ecff"/>
+      <rect x="800"  y="180" width="280" height="260" rx="16" fill="#e3f6f3"/>
+      <rect x="1200" y="230" width="240" height="160" rx="16" fill="#eef0ff"/>
+    </g>
+    <text x="200"  y="318">Input</text>
+    <text x="560"  y="318">Encoder</text>
+    <text x="940"  y="300">Our Module</text>
+    <text x="940"  y="340" font-size="20" fill="#8a90ad">(the interesting part)</text>
+    <text x="1320" y="318">Output</text>
+    <g stroke="#8a90ad" stroke-width="3" marker-end="url(#ar)">
+      <path d="M320 310h110M680 310h110M1080 310h110"/>
+    </g>
+    <text x="800" y="560" font-size="30" fill="#8a90ad">method figure placeholder</text>
+  </g>
+  <defs>
+    <marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="6" markerHeight="6" orient="auto">
+      <path d="M0 0 10 5 0 10z" fill="#8a90ad"/>
+    </marker>
+  </defs>
+</svg>

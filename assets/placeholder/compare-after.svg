@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Ours result placeholder">
+  <rect width="1200" height="700" fill="#eef0ff"/>
+  <circle cx="420" cy="330" r="180" fill="#7c6cf6" fill-opacity=".55"/>
+  <rect x="640" y="220" width="330" height="260" rx="20" fill="#22b3a4" fill-opacity=".5"/>
+  <g stroke="#fff" stroke-width="3" opacity=".8">
+    <path d="M300 330h240M420 210v240M700 280h210M700 350h210M700 420h150"/>
+  </g>
+  <text x="600" y="620" font-family="Inter, system-ui, sans-serif" font-size="34" fill="#4b5280" text-anchor="middle">ours (sharp placeholder)</text>
+</svg>

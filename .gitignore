@@ -1,0 +1,32 @@
+# 这是个纯静态站，没有构建产物，所以这份清单很短：
+# 只挡「本地生成的」和「不该外传的」两类东西。
+# vendor/ 是**故意提交**的（vendored three.js r180，不引 CDN、不要构建步骤），
+# 别往这里加 vendor/ 或 node_modules/ 之类的规则。
+
+# 本地草稿和中间产物（HTML 报告、logo 草图、缩略图生成的临时件）
+artifacts/
+
+# 凭据。HF 的 write token 只从环境变量读，任何时候都不该落进仓库
+.env
+.env.*
+*.pem
+*.key
+
+# 跑本地服务器 / 后台任务留下的日志
+*.out
+*.log
+nohup.out
+
+# 编辑器和系统垃圾
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+*.swp
+*~
+
+# Python 临时件（仓库里没有 Python 代码，但验证脚本偶尔会在根目录跑）
+__pycache__/
+*.pyc
+.venv/
+venv/

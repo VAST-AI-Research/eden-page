@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Gallery placeholder">
+  <rect width="800" height="500" fill="#e3f6f3"/>
+  <path d="M120 380 280 190l160 130 130-100 110 160z" fill="#22b3a4" fill-opacity=".28"/>
+  <circle cx="620" cy="140" r="70" fill="#7c6cf6" fill-opacity=".2"/>
+  <text x="400" y="440" font-family="Inter, system-ui, sans-serif" font-size="28" fill="#4a7d78" text-anchor="middle">sample 02</text>
+</svg>

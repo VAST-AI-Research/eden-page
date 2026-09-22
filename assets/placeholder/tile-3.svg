@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 800 500" role="img" aria-label="Gallery placeholder">
+  <rect width="800" height="500" fill="#fdeef2"/>
+  <circle cx="250" cy="200" r="90" fill="#e06a8b" fill-opacity=".25"/>
+  <circle cx="420" cy="280" r="130" fill="#7c6cf6" fill-opacity=".18"/>
+  <rect x="560" y="120" width="160" height="240" rx="18" fill="#fff" fill-opacity=".7" stroke="#e0cfd8"/>
+  <text x="400" y="440" font-family="Inter, system-ui, sans-serif" font-size="28" fill="#8a5a6b" text-anchor="middle">sample 03</text>
+</svg>

@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 700" role="img" aria-label="Baseline result placeholder">
+  <rect width="1200" height="700" fill="#e9eaef"/>
+  <g filter="url(#blur)">
+    <circle cx="420" cy="330" r="180" fill="#9aa0bb"/>
+    <rect x="640" y="220" width="330" height="260" rx="20" fill="#b6bccf"/>
+  </g>
+  <defs><filter id="blur"><feGaussianBlur stdDeviation="18"/></filter></defs>
+  <text x="600" y="620" font-family="Inter, system-ui, sans-serif" font-size="34" fill="#6b7290" text-anchor="middle">baseline (blurry placeholder)</text>
+</svg>
