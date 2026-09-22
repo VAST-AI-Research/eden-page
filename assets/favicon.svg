@@ -1,14 +1,16 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-label="Eden">
-  <!-- favicon 是 assets/logo.svg 的 16px 专用版：同一个图形（缺口环 + 圆心点 +
-       射向缺口的箭头），但笔画更粗、箭尖更短。
-       16px 下 logo 那版的箭尖两笔会和环黏在一起糊成一坨，缩短箭尖、加粗主笔
-       之后三个元素才分得开（这是按 16px 实际渲染挑出来的，别凭感觉改）。
-       改 logo 记得同步改这里。
-       注意：SVG 是 XML，注释里不能出现连续两个减号。 -->
-  <g fill="none" stroke="#5b4bdb" stroke-width="11" stroke-linecap="round" stroke-linejoin="round">
-    <path d="M52.5 34.5 A 23 23 0 1 1 29.5 11.5"/>
-    <path d="M29.5 34.5 L 55 9"/>
-    <path d="M46 9 H 55 V 18"/>
-  </g>
-  <circle cx="29.5" cy="34.5" r="8.5" fill="#5b4bdb"/>
+  <!-- 16px 专用版：沿用空心苹果轮廓，进一步加粗线条以保留识别度。 -->
+  <path fill="none" stroke="#5b4bdb" stroke-width="13.5" stroke-linecap="round" stroke-linejoin="round" d="M31.8 19.6
+    C28 15.2 22.1 14 16.8 16.9
+    C8.8 21.1 7.3 31 10.1 40
+    C13.5 50.8 22.1 57.1 31 57.4
+    C40.7 57.7 50.1 51.4 53.3 40.3
+    C56 31 53 21 46.1 17.1
+    C41 14.3 35.7 15 31.8 19.6 Z"/>
+  <path fill="none" stroke="#5b4bdb" stroke-width="10" stroke-linecap="round"
+    d="M32 20.4 C30.2 15.3 29.8 10.9 33 5.7"/>
+  <path fill="#5b4bdb" d="M33.7 12.8
+    C36.6 6.4 44.6 4.6 52.7 7.1
+    C51.2 14.9 44.5 18.7 35 17.2
+    C34.1 16 33.6 14.4 33.7 12.8 Z"/>
 </svg>
