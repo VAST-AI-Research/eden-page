@@ -1,106 +1,122 @@
 # Eden Pages
 
-Eden 的团队主页 + 项目宣传页。纯静态，无构建步骤。
-（唯一的第三方库是仓库内 vendored 的 three.js，只给三维查看器用，不引 CDN。）
+*English · [中文](README_zh.md)*
 
-**预览**：起个服务器比较稳妥 ——
+Team homepage and project pages for Eden. Fully static, no build step.
+(The only third-party library is three.js, vendored into the repo for the 3D viewers — no CDN.)
+
+**Preview** — running a server is the safe bet:
 
 ```bash
-python3 -m http.server 8000     # 然后开 http://localhost:8000/
+python3 -m http.server 8000     # then open http://localhost:8000/
 ```
 
-双击 `index.html` 也能看，但**三维查看器和 `pages/ccm-workflow/` 在 `file://` 下用不了**
-（ES module 受同源策略限制，会被浏览器拦掉）。其余内容照常显示，查看器只会停在
-「载入失败」那行提示上。部署到 GitHub Pages 之后是 http(s)，没这个问题。
+Double-clicking `index.html` mostly works, but **the 3D viewers and
+`pages/ccm-workflow/` will not run over `file://`** (ES modules are blocked by the
+same-origin policy). Everything else renders fine; the viewers just stop at a
+"failed to load" status line. Once deployed to GitHub Pages it is http(s), so the
+problem disappears.
 
-## 页面结构
+## Page structure
 
 ```
-index.html               首页：团队主张 + 各栏目前 3 条
-index.html?s=project     Project 列表：我们发布的系统 / 模型 / 工具
-index.html?s=research    Research 列表：全部论文
-index.html?s=blog        Blog 列表：全部文章
-index.html?p=<id>        某个条目的完整页面
+index.html               Home: team statement + top 3 of each section
+index.html?s=project     Project list: systems / models / tools we release
+index.html?s=research    Research list: all papers
+index.html?s=blog        Blog list: all posts
+index.html?p=<id>        Full page for one entry
 ```
 
-header 里的 Project / Research / Blog 进列表页，点列表里的卡片进详情页。
-在详情页里，header 右侧的切换器可以直接切换同栏目的其他条目。
+Project / Research / Blog in the header go to list pages; clicking a card in a
+list opens its detail page. On a detail page, the switcher at the right of the
+header jumps straight to other entries in the same section.
 
-三个栏目各对应 `data/projects.js` 里的一个数组：
+Each section maps to one array in `data/projects.js`:
 
-| 栏目 | key | 数据数组 |
+| Section | key | Data array |
 |---|---|---|
 | Project | `project` | `projects[]` |
 | Research | `research` | `papers[]` |
 | Blog | `blog` | `posts[]` |
 
-三个数组的 `id` 共用 `?p=` 命名空间，不要重名。
+All three arrays share the `?p=` namespace, so ids must not collide.
 
-改内容只动 `data/projects.js` 一个文件。
+To change content you only ever touch `data/projects.js`.
+
+> Project and Blog are currently hidden (`hidden: true` on their `nav` entries):
+> they stay out of the header and the home page, but `?s=` and `?p=` still resolve.
+> Delete that one line to bring a section back.
 
 ---
 
-## 中英双语怎么写
+## Writing bilingual content
 
-**任何给人看的字段都可以写成 `{ zh: "…", en: "…" }`：**
+**Any reader-facing field can be written as `{ zh: "…", en: "…" }`:**
 
 ```js
 title: { zh: "我们的方法", en: "Our Method" },
 ```
 
-**不需要翻译的直接写字符串**，两种语言共用 —— 人名、会议名、数字、代码、URL：
+**Write a plain string when there is nothing to translate** — names, venues,
+numbers, code, URLs are shared by both languages:
 
 ```js
 venue: "CVPR 2026",
 bibtex: "@inproceedings{...}",
 ```
 
-**只写一种也行**，另一种语言会自动用你写的那个，不会变空白：
+**One language alone is fine too.** The other falls back to whichever you wrote,
+so nothing ever renders blank:
 
 ```js
-subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
+subtitle: { zh: "还没来得及翻译" },    // shows the Chinese even in English mode
 ```
 
-右上角那个「中 / EN」按钮切换语言，选择会记住。首次访问按浏览器语言自动判断。
+The 中 / EN button in the top right switches language and remembers the choice.
+On a first visit it follows the browser's language preference.
 
-> 加内容时建议先把中文写全，英文可以后补 —— 缺英文不会让页面出错。
+> When adding content, fill in one language completely first — a missing
+> translation never breaks the page.
 
 ---
 
-## 加一篇论文
+## Adding a paper
 
-往 `data/projects.js` 的 `papers` 数组里加一个对象：
+Add an object to the `papers` array in `data/projects.js`:
 
 ```js
 {
-  id: "my-new-paper",                // URL 变成 index.html?p=my-new-paper，定了别改
-  title: {                           // *星号* 里的词会高亮成品牌色
+  id: "my-new-paper",                // becomes index.html?p=my-new-paper; do not change later
+  title: {                           // words wrapped in *asterisks* get the brand color
     zh: "我的论文：一个*很酷的方法*",
     en: "My Paper: A *Cool Method* for Something",
   },
-  // 标题太长被挤成三行时，用这个指定断行位置（只影响详情页大标题）。
-  // 写 title 的原样前缀、连星号一起写；不需要断行的语言写空串。
+  // When a long title wraps to three lines, pin the break point here
+  // (detail-page heading only). Give a verbatim prefix of `title`, asterisks
+  // included; use an empty string for languages that need no break.
   titleBreakAfter: { zh: "", en: "My Paper: A *Cool Method*" },
-  short: "My Paper",                 // 列表卡片和切换器里的短名
+  short: "My Paper",                 // short name for list cards and the switcher
   subtitle: {
     zh: "一句话说清这个方法做什么、好在哪。",
     en: "One line on what it does and why it is better.",
   },
-  // 列表卡片缩略图，必须 16:10。现有两篇论文用的是生成的示意图（统一风格、
-  // 托管在 HF，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
+  // List-card thumbnail, must be 16:10. The two existing papers use generated
+  // diagrams (one shared style, hosted on HF via the TH constant at the top of
+  // the file). See the "缩略图" section of CLAUDE.md for how to make one.
   thumb: TH + "my-project.jpg",
 
-  // 会议信息：标题下方一行居中排版。没中会议就把这几行删掉，整块自动消失。
-  venue: "CVPR 2026",                // 会议名不用翻译
-  badge: { zh: "口头报告", en: "Oral Presentation" },   // 荣誉，可省略
-  venueNote: "",                     // 副标注，如 "(ACM TOG)"，可省略
+  // Venue line, centered under the title. Delete these lines if there is no
+  // venue and the whole block disappears.
+  venue: "CVPR 2026",                // venue names are not translated
+  badge: { zh: "口头报告", en: "Oral Presentation" },   // honor, optional
+  venueNote: "",                     // sub-note such as "(ACM TOG)", optional
   date: "2026-06",
 
   authors: [
     { name: { zh: "张三", en: "San Zhang" }, url: "https://...", affil: [1], note: "*" },
     { name: { zh: "李四", en: "Si Li" },     url: "https://...", affil: [1, 2] },
   ],
-  affiliations: [                    // affil 里的 1 对应第一个
+  affiliations: [                    // 1 in `affil` refers to the first entry here
     "Eden",
     { zh: "某某大学", en: "Some University" },
   ],
@@ -112,36 +128,42 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
     { label: { zh: "代码", en: "Code" },  href: "https://...", icon: "code"  },
   ],
 
-  teaser: { src: "assets/my-project/teaser.mp4",   // .mp4/.webm 自动识别成视频
+  teaser: { src: "assets/my-project/teaser.mp4",   // .mp4/.webm detected as video
             poster: "assets/my-project/teaser.jpg",
             caption: { zh: "这段视频在展示什么。", en: "What this clip shows." } },
 
-  highlights: [                      // 顶部数字亮点，2~4 个最好看；不要就删掉
+  highlights: [                      // headline numbers; 2-4 looks best, or omit
     { value: "12×",  label: { zh: "推理加速", en: "faster" } },
     { value: "+3.4", label: "PSNR" },
   ],
 
   abstract: { zh: "摘要正文……", en: "Abstract text…" },
-  sections: [ /* 见下 */ ],
-  bibtex: "@inproceedings{...}",     // 代码，不分语言
+  sections: [ /* see below */ ],
+  bibtex: "@inproceedings{...}",     // code, not translated
   acknowledgements: { zh: "致谢……", en: "Acknowledgements…" },
 }
 ```
 
-数组顺序 = 列表页顺序，想置顶就往前挪。素材放 `assets/my-paper/` 下。
+Array order is list order — move an entry up to feature it. Put assets under
+`assets/my-paper/`.
 
-## 加一个 Project
+`authors[]` also takes `bold: true`, which bolds that name (for co-first authors,
+project leads, corresponding authors). Only the name is bolded, not the
+`*` `†` `✉` note markers.
 
-往 `projects` 数组里加，字段和论文完全一样，只是用到的那几个不同 ——
-项目通常没有 `venue` / `bibtex`，但会有 demo、代码、权重链接：
+## Adding a project
+
+Add to the `projects` array. The fields are exactly the same as a paper; only the
+ones you tend to use differ — projects usually have no `venue` or `bibtex`, but do
+have demo, code and weights links:
 
 ```js
 {
-  id: "my-system",                   // 不能和 papers / posts 里的 id 重名
+  id: "my-system",                   // must not collide with ids in papers / posts
   title: { zh: "我的系统：一个*可交互*的东西", en: "My System: An *Interactive* Thing" },
   short: "My System",
   subtitle: { zh: "一句话说清它能干什么。", en: "One line on what it does." },
-  date: "2026-08",                   // 没有 venue 的话，卡片上显示这个日期
+  date: "2026-08",                   // shown on the card when there is no venue
   thumb: "assets/my-system/thumb.jpg",
 
   authors: [{ name: "Zehuan Huang", url: "https://x.com/huanngzh", affil: [1] }],
@@ -155,43 +177,45 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 
   teaser: { src: "assets/my-system/demo.mp4", poster: "assets/my-system/demo.jpg" },
   abstract: { zh: "项目介绍……", en: "Project intro…" },
-  sections: [ /* 和论文一样，建议按 能做什么 → 怎么跑 → 限制 排 */ ],
+  sections: [ /* same as a paper; suggested order: what it does → how to run → limits */ ],
 }
 ```
 
-项目页的读者最关心「能不能跑起来」，所以建议把 demo、安装步骤、已知限制放在前面。
+Readers of a project page mostly want to know whether they can run it, so put the
+demo, install steps and known limitations near the top.
 
-## 加一篇 Blog
+## Adding a blog post
 
-往 `posts` 数组里加，结构一样但字段更少：
+Add to the `posts` array. Same shape, fewer fields:
 
 ```js
 {
-  id: "post-my-note",                // 不能和 papers / projects 里的 id 重名
+  id: "post-my-note",                // must not collide with ids in papers / projects
   title: { zh: "标题", en: "Title" },
   short: { zh: "短标题", en: "Short title" },
   subtitle: { zh: "一句话导语。", en: "One-line lede." },
   date: "2026-08",
   readingTime: { zh: "8 分钟", en: "8 min read" },
-  author: { zh: "张三", en: "San Zhang" },   // 博客用单个作者，不用 authors[]
+  author: { zh: "张三", en: "San Zhang" },   // posts use a single author, not authors[]
   thumb: "assets/posts/my-note.jpg",
   abstract: { zh: "导语段落。", en: "Intro paragraph." },
-  sections: [ /* 和项目一样 */ ],
+  sections: [ /* same as a project */ ],
 }
 ```
 
-## sections 能放什么
+## What can go in `sections`
 
-`sections` 是有序数组，页面按这个顺序渲染。`type` 决定长什么样。
-下面为了看清结构用了简写，**每个文字字段都能写成 `{zh, en}`**：
+`sections` is an ordered array rendered top to bottom. `type` decides the look.
+The snippets below are abbreviated to show structure — **every text field can be
+written as `{zh, en}`**:
 
 ```js
-// 纯文字
+// Plain text
 { type: "text", id: "limitations",
   title: { zh: "局限", en: "Limitations" },
   body: { zh: "文字，可以写 <b>HTML</b>", en: "Text, <b>HTML</b> allowed" } }
 
-// 图 / 视频
+// Image / video
 { type: "figure", id: "method",
   eyebrow: { zh: "方法", en: "How it works" },
   title: { zh: "方法", en: "Method" },
@@ -199,170 +223,197 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
   src: "assets/x/pipeline.png",
   caption: { zh: "图 1：整体框架。", en: "Figure 1: architecture." } }
 
-// 网格画廊，点开进灯箱。竖图、多图速览用这个
+// Grid gallery, click to open the lightbox. Good for portrait images and quick browsing
 { type: "gallery", id: "results", title: { zh: "更多结果", en: "More Results" },
   columns: 3,
   items: [ { src: "assets/x/a.jpg", caption: { zh: "案例 A", en: "Case A" } },
            { src: "assets/x/b.mp4", caption: { zh: "案例 B", en: "Case B" } } ] }
 
-// 轮播：一页 2 个上下排列，左右按钮翻页。横屏视频用这个 ——
-// 塞进网格每个都太小。样例自带播放控制条，不进灯箱。
+// Carousel: `perPage` items stacked per page, arrows to page through. Use this for
+// landscape videos — in a grid each one ends up too small. Samples carry their own
+// playback controls and do not open the lightbox.
 { type: "carousel", id: "samples", title: { zh: "样例", en: "Samples" },
-  perPage: 2,                      // 一页几个，默认 2
+  perPage: 2,                      // items per page, default 2
   items: [ { src: "assets/x/s1.mp4" }, { src: "assets/x/s2.mp4" },
            { src: "assets/x/s3.mp4", caption: { zh: "带说明", en: "With caption" } } ],
-  // 说明性小图（示意图这类）。**别写进 body 的 HTML 串里** ——
-  // body 限宽 68ch，图塞进去会被压窄还偏左，caption 也会被挤到换行。
+  // A small explanatory figure (a diagram, say). **Do not put it inside the body
+  // HTML string** — figures inside `body` inherit that box's width and alignment.
   figure: { src: "assets/x/diagram.jpg", width: "30rem",
             caption: { zh: "示意图。", en: "Diagram." } } }
 
-// 拖动滑块前后对比
+// Drag-slider before/after comparison
 { type: "compare", id: "comparison", title: { zh: "对比", en: "Comparison" },
   before: { src: "assets/x/base.jpg", label: { zh: "基线", en: "Baseline" } },
   after:  { src: "assets/x/ours.jpg", label: { zh: "我们的", en: "Ours" } } }
 
-// 数据表：每个单元格都能单独双语，数字列直接写字符串
+// Data table: every cell can be bilingual on its own; numeric columns are plain strings
 { type: "table", id: "quant", title: { zh: "定量结果", en: "Quantitative Results" },
   columns: [ { zh: "方法", en: "Method" }, "PSNR ↑", { zh: "耗时 ↓", en: "Time ↓" } ],
   rows: [ [ { zh: "基线", en: "Baseline" }, "24.1", "3.2" ],
           [ { zh: "我们的方法", en: "Ours" }, "29.7", "0.26" ] ],
-  highlightRows: [1],              // 加粗第 2 行（从 0 数），一般是我们的方法
+  highlightRows: [1],              // bold row index 1 (0-based), usually our method
   footnote: { zh: "同一测试集、同一硬件。", en: "Same test set and hardware." } }
 
-// 卖点卡片
+// Selling-point cards
 { type: "features", id: "highlights", title: { zh: "亮点", en: "What's New" },
   items: [ { title: { zh: "卖点一", en: "First point" },
              body: { zh: "一句话", en: "One line" }, icon: "spark" } ] }
 
-// 编号步骤，适合放安装/运行命令
+// Numbered steps, good for install / run commands
 { type: "steps", id: "usage", title: { zh: "快速开始", en: "Get Started" },
   items: [ { title: { zh: "安装", en: "Install" },
-             body: "<code>pip install -e .</code>" } ] }   // 命令不用翻译
+             body: "<code>pip install -e .</code>" } ] }   // commands are not translated
 
-// 可旋转的三维场景网格（three.js）。默认只显示 poster，
-// 读者点「载入 3D 场景」才下载模型 —— GLB 单个动辄几十 MB，不能自动加载。
+// Grid of orbitable 3D scenes (three.js). Only the poster shows by default;
+// the model downloads when the reader clicks "Load interactive 3D scene" —
+// a single GLB is tens of MB, so it must never autoload.
 { type: "sceneViewer", id: "scenes", title: { zh: "重建结果", en: "Results" },
   columns: 3,
-  items: [ { id: "case01",                       // 用于记住该场景的环境旋转角度
+  items: [ { id: "case01",                       // also keys the saved environment rotation
              model: MS3 + "viewers/scenes/case01/scene.glb",
              environment: MS3 + "viewers/scenes/case01/environment.png",
              poster: MS + "scenes/case01.png",
-             workflow: "pages/ccm-workflow/?case=case01" } ] }   // 可选，给了才显示链接
+             workflow: "pages/ccm-workflow/?case=case01" } ] }   // optional; shows a link when set
 
-// 并排双查看器：上面一行缩略图选条，下面两块常驻的查看器。
-// 点缩略图切换案例，两块同时换。默认选中并加载第一个，没有「载入」按钮。
+// Side-by-side viewer pair: a thumbnail strip on top, two resident viewers below.
+// Clicking a thumbnail switches both at once. The first case is selected and
+// loaded by default, and there is no "load" button.
 { type: "compareViewer", id: "vs-baseline", title: { zh: "对比", en: "Comparison" },
-  cameras: "data/astra-cameras.json",   // 相机元数据表，「重置视角」要用，见下
-  cases: [ { id: "case01",              // 用于在相机表里索引，不能省
+  cameras: "data/astra-cameras.json",   // camera metadata table, needed by Reset view; see below
+  cases: [ { id: "case01",              // keys into the camera table; required
              label: { zh: "案例 1", en: "Case 1" },
              left:  MS3 + "viewers/astra/case01/from_scratch.glb",
              right: MS3 + "viewers/astra/case01/with_mira_scene.glb",
-             poster: MS + "astra/01-case01.png",   // 缩略图条里那张小图
-             leftLabel:  { zh: "基线", en: "Baseline" },      // 可选，有默认值
+             poster: MS + "astra/01-case01.png",   // the small image in the strip
+             leftLabel:  { zh: "基线", en: "Baseline" },      // optional, has a default
              rightLabel: { zh: "我们的", en: "Ours" } } ] }
 ```
 
-有 `title` 的 section 会自动出现在右侧竖排的章节导航里。
-`id` 就是锚点，`index.html?p=my-paper#results` 可以直接分享到某一节。
+Any section with a `title` shows up automatically in the vertical on-page
+navigation on the right. `id` is the anchor, so
+`index.html?p=my-paper#results` links straight to one section.
 
-`figure` 还认 `figureClass: "figure--compact"`，把图限到 35rem 居中 —— 示意图这类
-素材铺满整个版心会被放糊，还会和旁边满宽的视频抢注意力。
+`figure` also takes `figureClass: "figure--compact"`, which caps the image at
+35rem and centers it — diagrams look soft when blown up to full column width, and
+they compete with the full-width videos next to them.
 
-`compareViewer` 的 `cameras` 表是「重置视角」能回到**和缩略图对齐的参考机位**的前提：
-每个 GLB 的相机列表里有一项 `default: true`，那是原作者渲参考图用的机位。
-不给这张表的话会退化成斜上方俯视，点重置就对不上缩略图了。表按 `cases[].id` 索引。
+The `cameras` table is what lets **Reset view** return to the reference framing
+that matches the thumbnail: each GLB's camera list has one entry with
+`default: true`, the shot the original authors used. Without the table it falls
+back to a three-quarter overview and Reset no longer matches the thumbnail. The
+table is keyed by `cases[].id`.
 
-**两个三维查看器需要本地服务器**（`file://` 下 ES module 会被拦掉，见开头的预览说明）。
-它们跑仓库内 vendored 的 three.js，不引 CDN。同时存活的查看器数量有上限，
-超了会自动释放最早载入的那个 —— 这是 WebGL context 的浏览器硬限制，
-不是可以调大的参数。
+**Both 3D viewer types need a local server** (ES modules are blocked over
+`file://` — see the preview note at the top). They run the vendored three.js in
+this repo, not a CDN. The number of simultaneously live viewers is capped; going
+over releases the oldest one. That is a hard browser limit on WebGL contexts, not
+a tunable.
 
-## 可用图标名
+## Available icon names
 
-`links[].icon` 和 `features` 的 `icon` 从这里选：
+Pick `links[].icon` and `features` icons from:
 
 `paper` `arxiv` `code` `github` `video` `demo` `hf` `data` `twitter` `link`
 `spark` `bolt` `check`
 
-写错了不会报错，会退回成通用链接图标。要加新图标见 `js/app.js` 顶部的 `ICONS`。
+A wrong name does not throw; it falls back to the generic link icon. To add one,
+see `ICONS` at the top of `js/app.js`.
 
-## 改团队信息和首页文案
+## Changing team info and home copy
 
-`data/projects.js` 顶部三段（都支持 `{zh, en}`）：
+Three blocks at the top of `data/projects.js` (all support `{zh, en}`):
 
-- `site` — team name、logo、页脚链接和联系方式
-- `home` — 首页那句大标题和简介（`*星号*` 同样能高亮）
-- `nav` — 栏目名和列表页说明文字。目前支持 `project` / `research` / `blog` 三个 `key`，
-  数组顺序就是 header 里的顺序（当前是 Project → Research → Blog）
+- `site` — team name, logo, footer links and contact
+- `home` — the big statement on the home page (`*asterisks*` highlight here too)
+- `nav` — section names and list-page intros. Supported keys are `project` /
+  `research` / `blog`; array order is header order. Add `hidden: true` to keep a
+  section out of the header and home page without deleting its data.
 
-## 改界面文案
+## Changing UI strings
 
-按钮、提示这类不属于内容的字（「查看项目」「阅读全文」「复制」等）在
-`js/app.js` 顶部的 `UI` 常量里，`zh` 和 `en` 各一份，改那里即可。
+Buttons and labels that are not content ("View project", "Read more", "Copy" …)
+live in the `UI` constant at the top of `js/app.js`, with a `zh` and an `en` copy.
 
-## 换配色
+## Changing colors
 
-`css/style.css` 最上面 `:root` 里这几行：
+These lines in `:root` at the top of `css/style.css`:
 
 ```css
---brand:  #5b4bdb;   /* 主色：链接、标题强调、进度条 */
---accent: #0fb5a6;   /* 副色：hero 环境光、复制成功态 */
+--brand:  #5b4bdb;   /* primary: links, title emphasis, progress bar */
+--accent: #0fb5a6;   /* secondary: hero ambient light, copy-success state */
 ```
 
-其余颜色都是从这两个推导出来的，改完深浅两套主题一起变。
+Every other color derives from those two, so both the light and dark themes
+follow along.
 
-整体走克制路线：不用渐变填色、不用彩色标签、hover 不做位移动效。
-加新样式时建议跟着这个基调，细节见 [CLAUDE.md](CLAUDE.md)。
+The overall tone is restrained: no gradient fills, no colored chips, no hover
+displacement. Please keep new styles in that key — details in [CLAUDE.md](CLAUDE.md).
 
-## 素材建议
+## Asset tips
 
-- 图片先过 [TinyPNG](https://tinypng.com/) 再放进来
-- 视频用 H.264 mp4，控制在几 MB；teaser 视频记得给 `poster`
-- teaser 用 16:9，列表缩略图用 16:10 左右比较整齐
+- Run images through [TinyPNG](https://tinypng.com/) first
+- Use H.264 mp4 for video, a few MB at most; always give teaser videos a `poster`
+- 16:9 for teasers, 16:10 for list thumbnails keeps things tidy
 
-### 大素材放哪
+### Where large assets go
 
-小图（几百 KB 的缩略图、teaser 封面）直接进 `assets/`。**大批量视频不要进 git** ——
-仓库会被拖垮，GitHub Pages 也有 1GB 软限。这种走我们自己的 HF dataset：
+Small images (a few hundred KB — thumbnails, teaser posters) go straight into
+`assets/`. **Do not put bulk video in git** — it bloats the repo, and GitHub Pages
+has a 1GB soft limit. Those go to our own HF dataset:
 
 ```
-huanngzh/page-assets  →  assets/<项目名>/...
+huanngzh/page-assets  →  assets/<project>/...
 ```
 
-数据里用一个常量存基地址，条目里只写相对路径，将来换托管只改一行。
-现在有两个，都在 `data/projects.js` 顶部：
+Store the base address in a constant and write only relative paths in the entries,
+so switching hosting later is a one-line change. There are three today, all at the
+top of `data/projects.js`:
 
 ```js
 const SW = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/stereo-world/';
 const MS = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/mira-scene/';
-// 用的时候：src: SW + "videos/demo.mp4"
+const TH = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/thumbs/';
+// usage: src: SW + "videos/demo.mp4"
 ```
 
-两个坑：URL 必须是 `resolve/main`（直出文件本体），写成 `blob/main` 会拿到网页版
-预览页；HF 会 302 到一个**带签名、会过期**的 CDN 地址，别把 302 之后的地址抄进数据里。
+Two traps: the URL must be `resolve/main` (the file itself) — `blob/main` gives
+you the HTML preview page; and HF redirects to a **signed, expiring** CDN address,
+so never copy the post-302 URL into the data.
 
-上传（token 要 write 权限。别写进仓库、也别直接打在命令行上 —— 命令行参数
-同机器上别人 `ps` 就能看到，用环境变量或 `hf auth login` 交互登录）：
+Uploading (the token needs write scope. Do not commit it, and do not pass it as a
+command-line argument — anyone on the machine can read those with `ps`. Use an
+environment variable or `hf auth login`):
 
 ```bash
-export HF_TOKEN=<你的 write token>     # 或者跑一次 hf auth login
-hf upload huanngzh/page-assets <本地目录> assets/<项目名> --repo-type=dataset
+export HF_TOKEN=<your write token>     # or run hf auth login once
+hf upload huanngzh/page-assets <local dir> assets/<project> --repo-type=dataset
 ```
 
-本地目录的子目录结构会原样搬到 repo 里，所以按 `videos/ images/ ...` 分好再传，
-数据里就能直接写 `SW + "videos/x.mp4"`。
+The local directory structure is mirrored into the repo, so split things into
+`videos/ images/ ...` before uploading and the data can just say
+`SW + "videos/x.mp4"`.
 
-## 部署
+## Deploying
 
-推到 GitHub → Settings → Pages → 选分支和根目录。或者丢到任意静态托管上。
+Push to GitHub → Settings → Pages → pick the branch and root directory. Or drop
+the folder on any static host.
 
-分享时用 `https://your-site/?p=my-system` 直达具体条目。
+For a custom domain, put a `CNAME` file containing just the domain in the repo
+root, then point DNS at GitHub Pages (four `A` records for an apex domain, or a
+single `CNAME` for a subdomain). Every path in this repo is relative and routing
+is built from `location.pathname`, so neither a sub-path deployment nor a custom
+domain needs any code change.
 
-注意：**语言不在 URL 里**，切语言只记在本地。所以分享出去的链接，对方会按他自己
-浏览器的语言偏好打开。如果需要「发中文链接给中文读者」这种能力，跟我说，要改路由。
+Share `https://your-site/?p=my-system` to link straight to an entry.
 
-## 自带的东西
+Note: **language is not in the URL** — the choice is stored locally. A link you
+share therefore opens in whatever language the recipient's browser prefers. If you
+need "send a Chinese link to a Chinese reader", that requires a routing change.
 
-中英双语切换（记住选择，首次按浏览器语言判断）、深浅色切换（跟随系统，右上角可手动
-切）、阅读进度条、章节吸顶导航、项目切换器、图片灯箱、前后对比滑块、BibTeX 一键复制、
-键盘可达、`prefers-reduced-motion` 支持、打印样式、每个页面独立的 SEO/OG meta。
+## What you get out of the box
+
+Bilingual switching (remembered, first visit follows the browser), light/dark
+switching (follows the system, manual override in the top right), reading progress
+bar, vertical on-page navigation, project switcher, image lightbox, before/after
+slider, one-click BibTeX copy, keyboard accessibility,
+`prefers-reduced-motion` support, print styles, and per-page SEO/OG meta.
