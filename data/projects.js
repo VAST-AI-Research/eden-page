@@ -998,7 +998,7 @@ window.SITE_DATA = {
       bibtex:
         "@article{sun2026stereo,\n" +
         "  title={Stereo World Model: Camera-Guided Stereo Video Generation},\n" +
-        "  author={Sun Yang-Tian and Huang Zehuan and Niu Yifan and Ma Lin and Cao Yan-Pei and Ma Yuewen and Qi Xiaojuan},\n" +
+        "  author={Sun, Yang-Tian and Huang, Zehuan and Niu, Yifan and Ma, Lin and Cao, Yan-Pei and Ma, Yuewen and Qi, Xiaojuan},\n" +
         "  journal={arXiv preprint arXiv:2603.17375},\n" +
         "  year={2026}\n" +
         "}",
