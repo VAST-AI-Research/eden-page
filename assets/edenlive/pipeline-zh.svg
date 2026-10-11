@@ -1,0 +1,107 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1180" height="560" viewBox="0 0 1180 560" font-family="'Google Sans Flex','PingFang SC','Microsoft YaHei',sans-serif">
+  <defs>
+    <marker id="arrow" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1.4 8.4 5 1 8.6z" fill="#5b4bdb"/>
+    </marker>
+    <marker id="arrow-muted" viewBox="0 0 10 10" refX="8.6" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+      <path d="M1 1.4 8.4 5 1 8.6z" fill="#99a0b6"/>
+    </marker>
+  </defs>
+
+  <!-- ===================== 1. 输入来源 ===================== -->
+  <g>
+    <text x="24" y="22" font-size="12" font-weight="600" fill="#6b7391" letter-spacing="1.1">输入来源</text>
+
+    <g>
+      <rect x="24" y="36" width="250" height="62" rx="11" fill="#f7f8fc" stroke="#e4e7f0"/>
+      <text x="40" y="61" font-size="15.5" font-weight="500" fill="#0b0d13">代码 Agent</text>
+      <text x="40" y="81" font-size="12.5" fill="#6b7391">搭建 2D / 3D 场景与游戏</text>
+    </g>
+    <g>
+      <rect x="24" y="108" width="250" height="62" rx="11" fill="#f7f8fc" stroke="#e4e7f0"/>
+      <text x="40" y="133" font-size="15.5" font-weight="500" fill="#0b0d13">引擎或仿真器</text>
+      <text x="40" y="153" font-size="12.5" fill="#6b7391">搭建场景与仿真</text>
+    </g>
+    <g>
+      <rect x="24" y="180" width="250" height="62" rx="11" fill="#f7f8fc" stroke="#e4e7f0"/>
+      <text x="40" y="205" font-size="15.5" font-weight="500" fill="#0b0d13">视频流</text>
+      <text x="40" y="225" font-size="12.5" fill="#6b7391">录制视频或实时画面</text>
+    </g>
+
+    <!-- 三张卡片汇成一条 -->
+    <path d="M274 67 H296 M274 139 H296 M274 211 H296 M296 67 V211" fill="none" stroke="#c4c9d8" stroke-width="1.5"/>
+    <line x1="296" y1="139" x2="318" y2="139" stroke="#5b4bdb" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ===================== 2. proxy / 参考视频流 ===================== -->
+  <g>
+    <rect x="318" y="86" width="196" height="106" rx="13" fill="#ffffff" stroke="#5b4bdb" stroke-width="1.5"/>
+    <text x="416" y="130" font-size="13" font-weight="600" fill="#5b4bdb" text-anchor="middle" letter-spacing=".4">PROXY / 参考视频流</text>
+    <text x="416" y="156" font-size="12.5" fill="#6b7391" text-anchor="middle">布局、镜头、运动</text>
+    <line x1="514" y1="139" x2="536" y2="139" stroke="#5b4bdb" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ===================== 3. EdenLive ===================== -->
+  <g>
+    <rect x="536" y="72" width="262" height="134" rx="15" fill="#5b4bdb"/>
+    <text x="667" y="110" font-size="21" font-weight="600" fill="#ffffff" text-anchor="middle">EdenLive</text>
+    <text x="667" y="132" font-size="13" font-weight="500" fill="#ffffff" text-anchor="middle" opacity=".9">生成式渲染</text>
+    <g font-size="12" font-weight="500" fill="#5b4bdb">
+      <rect x="549" y="150" width="60" height="24" rx="12" fill="#ffffff"/>
+      <text x="579" y="166" text-anchor="middle">单 GPU</text>
+      <rect x="615" y="150" width="60" height="24" rx="12" fill="#ffffff"/>
+      <text x="645" y="166" text-anchor="middle">&gt;24 fps</text>
+      <rect x="681" y="150" width="56" height="24" rx="12" fill="#ffffff"/>
+      <text x="709" y="166" text-anchor="middle">分钟级</text>
+    </g>
+    <line x1="798" y1="139" x2="820" y2="139" stroke="#5b4bdb" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ===================== 4. 实时画面 ===================== -->
+  <g>
+    <rect x="820" y="86" width="164" height="106" rx="13" fill="#ffffff" stroke="#5b4bdb" stroke-width="1.5"/>
+    <text x="902" y="131" font-size="13" font-weight="600" fill="#5b4bdb" text-anchor="middle" letter-spacing=".6">实时画面</text>
+    <text x="902" y="158" font-size="16" font-weight="500" fill="#0b0d13" text-anchor="middle">480P 或 720P</text>
+    <line x1="984" y1="139" x2="1006" y2="139" stroke="#5b4bdb" stroke-width="1.5" marker-end="url(#arrow)"/>
+  </g>
+
+  <!-- ===================== 5. 观看者 ===================== -->
+  <g>
+    <rect x="1006" y="72" width="150" height="134" rx="13" fill="#ffffff" stroke="#0fb5a6" stroke-width="1.5"/>
+    <text x="1081" y="128" font-size="13" font-weight="600" fill="#0fb5a6" text-anchor="middle" letter-spacing=".6">观看者</text>
+    <text x="1081" y="152" font-size="12.5" fill="#6b7391" text-anchor="middle">观看画面，再作操作</text>
+  </g>
+
+  <!-- ===================== return loop ===================== -->
+  <!-- 观看者虚线接入反馈框右侧，反馈框左侧再指回三路输入汇合处 -->
+  <g fill="none" stroke="#99a0b6" stroke-width="1.5">
+    <path d="M1081 210 V320 H984" stroke-dasharray="5 4" marker-end="url(#arrow-muted)"/>
+    <path d="M464 320 H296 V228" marker-end="url(#arrow-muted)"/>
+  </g>
+  <g>
+    <rect x="464" y="274" width="520" height="92" rx="13" fill="#f7f8fc" stroke="#e4e7f0"/>
+    <text x="724" y="300" font-size="12" font-weight="600" fill="#6b7391" text-anchor="middle" letter-spacing="1">操作反馈回输入来源</text>
+    <g font-size="13.5">
+      <text x="488" y="330" font-weight="500" fill="#0b0d13">游戏中</text>
+      <text x="586" y="330" fill="#333a4d">操控角色、调整镜头、触发机关</text>
+      <text x="488" y="352" font-weight="500" fill="#0b0d13">现实录制</text>
+      <text x="586" y="352" fill="#333a4d">移动机位、作出动作</text>
+    </g>
+  </g>
+
+  <!-- ===================== applications ===================== -->
+  <g>
+    <line x1="64" y1="402" x2="1116" y2="402" stroke="#e4e7f0" stroke-width="1"/>
+    <text x="590" y="434" font-size="12" font-weight="600" fill="#6b7391" text-anchor="middle" letter-spacing="1.1">这条回路支撑的应用</text>
+    <g font-size="14" font-weight="500" fill="#1c2029">
+      <rect x="24" y="452" width="270" height="72" rx="11" fill="#ffffff" stroke="#e4e7f0"/>
+      <text x="159" y="493" text-anchor="middle">游戏类交互体验</text>
+      <rect x="310" y="452" width="270" height="72" rx="11" fill="#ffffff" stroke="#e4e7f0"/>
+      <text x="445" y="493" text-anchor="middle">场景与动画实时预览</text>
+      <rect x="596" y="452" width="270" height="72" rx="11" fill="#ffffff" stroke="#e4e7f0"/>
+      <text x="731" y="493" text-anchor="middle">视频流重渲染与换皮</text>
+      <rect x="882" y="452" width="274" height="72" rx="11" fill="#ffffff" stroke="#e4e7f0"/>
+      <text x="1019" y="493" text-anchor="middle">具身数据增强</text>
+    </g>
+  </g>
+</svg>

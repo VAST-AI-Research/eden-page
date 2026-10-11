@@ -437,6 +437,57 @@ hero 三层背景：`.hero__aurora`（一团静态淡色晕，不动画）/ `.he
 向下淡出）/ `.hero__noise`（内联 SVG 噪点）。都是 `z-index: -1/-2` +
 `pointer-events: none`。home / list / detail 三种视图共用，由 `heroBackdrop()` 插入。
 
+**视频背景条**：详情页的条目在数据里写 `backdrop`，标题/作者/按钮就压在视频上。
+EdenLive 在用。两种形态：
+
+- `backdrop.rows`：**两行横向滚动的视频条带**，每行一个 clip 数组。EdenLive 用这个。
+- `backdrop.src`：单个铺满的素材（图或视频）。
+
+由 `heroFilm()` 建 DOM、`initHeroStrip()` 驱动滚动，和上面三层**互斥** ——
+配了 `backdrop` 就不画网格和晕光，否则网格会透在画面上。几个约定：
+
+- **视频条到按钮行为止就结束**，`TL;DR`、`teaser` 和 `highlights` 另起一个
+  `.wrap.hero__below` 落在条外面的正常背景上 —— 一段装饰视频压在真正要读者看的
+  内容底下是本末倒置。所以 `renderHero()` 带 backdrop 时会生成两个 `.wrap`。
+- 条高 `min(760px, 100vh)`。小屏跟着视口收，否则手机上要滑很久才见正文。
+- **目录在这种页面上要滑过视频条才出现**（`initTocGate()`）：条上压着标题和按钮，
+  右侧再浮一列章节名会打架。实现是 IO 盯 `.hero__band` 的可见性，
+  在 `#toc` 上挂 `data-gated="hidden|shown"`，CSS 用 opacity + visibility 淡入
+  （不用 `display:none` —— 那会让 IO 失去观测目标）。
+  没有 band 的页面不挂这个属性，目录一直显示，和原来一样。
+- 背景纯装饰：`aria-hidden` + `inert`、不给控制条。真正要读者看的是 `teaser`。
+- 上面压一层 `.hero__film-shade` 渐变蒙版（不是纯色平铺 —— 那样画面会整体发灰）。
+  压得克制：素材本身是要给人看的。文字那一侧稍重、右半边基本放开，
+  标题和作者再各自加一点很轻的 `text-shadow` 扛住花背景 ——
+  比继续压暗整块画面划算。
+
+**滚动条带（`initHeroStrip()`）的几个坑**，改它之前先看这段：
+
+- 位移用 rAF 按「每秒多少 px」算，**不用 CSS animation** —— 要能随时暂停，
+  并且 resize 改了格宽之后接着原进度走，不是跳回起点。
+- **每一格始终循环播自己那一段**。格子滚出视野就被搬到队列另一头，
+  所以回收**必须发生在视野外**：正向（往左跑）回收首格 `append`，
+  反向（往右跑）回收末格 `prepend`。两个方向搞成同一种，
+  反向行就会每隔十几秒把一个**正在看的**格子抽走，看起来像「这一格的视频
+  播完换成了另一段」。曾经就是这个 bug。
+- 同理，懒加载判定里的 `shift` 要和 transform 用同一个值
+  （反向行是 `offset - stride`），否则可见范围整体偏一格。
+- 视频**懒加载**：只有滚到视野附近才填 `src`，离开就 `pause()`。
+  EdenLive 那 26 个 clip 合计约 330MB，全量预载等于把首屏炸掉。
+- 条带在视口外 / 切到别的标签页 / 用户按了暂停时，rAF 和所有视频一起停。
+  `prefers-reduced-motion` 默认就是暂停态。右下角 `.hero__strip-toggle`
+  让用户掐掉动效和流量。
+- 切走页面时 `heroStripStop()` 会 `removeAttribute('src') + load()`，
+  不然切出去之后还有十几路解码在跑。
+- 格子里的视频用 `object-fit: contain` 而不是 `cover`：这些是生成结果，
+  裁掉边缘就看不出画面在干什么了。
+- 这种 hero 的文字颜色**写死浅色、不跟随深浅主题**，因为背景是自带亮度的画面。
+  所以 `@media print` 里除了藏掉 `.hero__film`，还要把这些文字改回 `#000`，
+  不然打印出来是白底白字。加新的文字元素到这个 hero 里时记得同步那两处。
+- 样式全挂在 `.hero__band` 这个类上（不是 `#hero` 上的标记）—— `#hero` 是跨视图
+  复用的节点，但每次 `renderHero()` 开头的 `innerHTML = ''` 就把 band 一起清掉了，
+  不需要额外重置什么。
+
 header 铺满整个视口宽度（`.header-inner` 不套 `.wrap`，自带 `padding-inline`），
 正文仍受 `--page` 约束。
 
@@ -446,13 +497,22 @@ header 铺满整个视口宽度（`.header-inner` 不套 `.wrap`，自带 `paddi
 改竖排后章节多了往下长，超过视口就在那一列里滚。
 
 用 `fixed` 而不是 `sticky`：后者要待在某个滚动容器里，会被 `.section` 的 overflow
-和分隔线截断。代价是会盖住正文右侧，所以分三档：1500px 以上用 `--toc-w` 算偏移给
-正文让位；1100px 以下收成一列圆点、悬停/聚焦才用 `::after` 浮出标题（圆点本体是
-`color: transparent`，标题只能走 `data-label`，不然会连圆点一起被隐藏）；
+和分隔线截断。代价是会盖住正文右侧，所以分三档：1100px 以上目录贴在正文
+右缘外侧，视口放不下时把详情页的 `.wrap` 收窄并保持居中（只在 `#toc` 可见时，
+算式全用 rem，别混进 `--page` 的 px）；1100px 以下收成一列圆点、悬停/聚焦才用
+`::after` 浮出标题（圆点本体是 `color: transparent`，标题只能走 `data-label`，
+不然会连圆点一起被隐藏）；
 640px 以下整个隐藏 —— 手机上正文本来就窄，浮层怎么放都挡。
 
 当前项延续「不用彩色色块」的取舍：只把文字变实 + 左侧导轨那一段染成品牌色。
 章节名过长用 ellipsis 截断，同时挂 `title` 属性保证读屏和原生 tooltip 拿到全名。
+
+**层级**：section 上写 `tocDepth: 2` 就在目录里缩进成上一个一级项的子项
+（EdenLive 的四节应用在用）。层级是数据里标的，渲染层不去猜 —— 它只把值放到
+`<a data-depth>` 上。只影响目录，正文里的章节标题不变。
+宽屏缩进做在 `padding-left` 上而不是 `margin`（导轨那条竖线要连续，
+margin 会把它断成两段）；窄屏圆点模式下 `padding: 0` 会压掉缩进，
+所以那边改用更小的圆点来区分。
 **改这块记得同步 `.section` 的 `scroll-margin-top`** —— TOC 不再占正文高度，
 原来多留给它的 3.5rem 会让锚点跳过头。
 
@@ -500,9 +560,23 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
 
 - **team 信息已是真的**：team name（Eden）、tagline、首页文案、`site.links`
   的 X 账号、`footer.contact` 邮箱都填好了。
-- **`papers[]` 已是真内容**：StereoWorld（CVPR 2026）和 Mira-Scene。`projects[]` 和
-  `posts[]` 仍是占位，标题、作者、`href: "#"` 链接都要替换，`assets/placeholder/`
-  的素材也是。
+- **`papers[]` 已是真内容**：StereoWorld（CVPR 2026）、Mira-Scene 和 MultiLive。
+  `posts[]` 仍是占位，标题、作者、`href: "#"` 链接都要替换。
+- **`projects[]` 只有 EdenLive 一条**，两个占位项目已删，`nav[]` 里 project 栏目
+  的 `hidden` 也去掉了（之前是因为内容是占位才藏着）。EdenLive 的**文案是真的**
+  （从 `artifacts/EdenLive 发布核心特点与叙事/` 整理而来），素材大部分还是占位：
+  `teaser` / 两张流程图 / 四节应用的 carousel / `thumb` 都还指向
+  `assets/placeholder/*.svg`，数据里每处都留了 `TODO:` 注释。
+  链接（论文/代码/权重/demo）也还是 `href: "#"`。
+- **⚠️ hero 条带的素材现在指向 `artifacts/`，只能本地预览。** 常量是
+  `data/projects.js` 顶部的 `EL`，26 个 clip 约 330MB。`artifacts/` 在
+  `.gitignore` 里（不会进仓库），所以**部署到 Pages 之后这些地址全是 404**。
+  上线前要把它们传到 HF 的 `assets/edenlive/wipe-480/` 下，再把 `EL` 改成那个
+  `resolve/main` 地址（和 `SW` / `MS` 同一个套路），数据里的相对路径不用动。
+  两张流程图要照 `artifacts/.../Images_attachments/` 里那两张（`-realtime-v4` 和
+  `-interaction`）重画成站点配色，不要直接用原图 —— 它们是绿色系，和全站的紫/青不搭。
+  另外文案里 `>24 fps`、分钟级、百毫秒级延迟这几个数字是对外口径的下限，
+  最终以实测为准；「多种参考输入」的措辞也还没定（可能改成「任意」）。
 - **Mira-Scene 的两节交互 section 已接成真查看器**（`sceneViewer` / `compareViewer`，
   见上面「三维查看器」一节），CCM workflow 也以 `pages/ccm-workflow/` 独立页挂出。
   三维素材 155 个文件约 730MB 在 `assets/mira-scene/3d/` 下。
@@ -532,8 +606,9 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
   友好度，可以写个脚本从 `SITE_DATA` 预渲染，`updateMeta()` 里已经按 view 分好了
   title/description/og:image/canonical，预渲染时可以直接复用。
   注意双语站预渲染要出两套页面（`/zh/...` 和 `/en/...`）才有 SEO 意义。
-- Google Fonts 是外链。内网/离线环境要自托管字体，删 `index.html` 里那三行 link
-  即可回落到系统字体栈。
+- Google Fonts 是外链，当前是 Google Sans Flex（正文/标题）+ Google Sans Code
+  （代码）。内网/离线环境要自托管字体，删 `index.html` 里那三行 link
+  即可回落到系统字体栈。中文这套字体不覆盖，落到 PingFang / 雅黑。
 - CSS 用了 `color-mix()`（Chrome 111+ / Safari 16.2+ / Firefox 113+）和 `:has()`。
   需要兼容更老的浏览器就得把这些换成静态色值。
 - 栏目 key 到数据数组的映射集中在 `NAV_SOURCE`（`js/app.js`）。加新栏目改那一行 +

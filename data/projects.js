@@ -61,6 +61,27 @@ const MS3 = MS + '3d/';
  * 缩到 288px 存盘在高分屏和详情页切换器上都会糊，交给浏览器按 CSS 缩放。 */
 const TH = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/thumbs/';
 
+/* MultiLive 的 19 个页面素材（13 段视频、5 张图片、1 份 PDF，约 80 MiB）
+ * 托管在 ToRealU/eden-page-assets 的 assets/multilive/ 下。
+ * 使用 resolve/main 稳定地址，视频分段请求由 HF 处理。
+ * 需要离线预览时，把 ML 改成 'assets/multilive/'（本地视频拖动需要
+ * 支持 Range 的服务器）。 */
+const ML = 'https://huggingface.co/datasets/ToRealU/eden-page-assets/resolve/main/assets/multilive/';
+
+/* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 960MB）
+ * 托管在 huanngzh/page-assets 的 assets/edenlive/clips/ 下，resolve/main 直出。
+ * 文件名是随机短码，不带分辨率和模型名。短码与本地 artifacts/ 原文件名的
+ * 对照在 data/edenlive-clips.md。
+ *
+ * 背景条带 27 个 clip、832×480、各约 30s。懒加载：只有滚到视野附近的格子才下载。
+ *
+ * 条带的挑选（本地目录 edenlive-wipe-480 里实际有 31 个，这里只用 27 个）：
+ * 三个 elda 文件夹（025/026/028）内容高度相似，只留 025 的 wan21；
+ * 两个火箭发射（082/084）只留 082。相似的格子挨着滚过去会看成同一段在重播。
+ * 后来换过一批：拿掉 doodle-jump、elda 的 wan22、合金弹头、光剑切箱子、草原疾驰，
+ * 补上运河小船 / 提灯划小船、闪身步 / 地下遗迹 / 火星车漫游，外加 025 的 wan21。
+ * 奥特曼飞行小游戏渲过但不稳定，没有放进条带。第一行 13 格、第二行 14 格。 */
+
 window.SITE_DATA = {
   /* ---------------------------------------------------------------- 站点级 */
   site: {
@@ -108,10 +129,9 @@ window.SITE_DATA = {
    * key 决定条目来源：project -> projects[]，research -> papers[]，blog -> posts[] */
   nav: [
     {
-      // hidden: 不进 header 导航、也不在首页出现。数据和路由都留着，
-      // ?s=project / ?p=<id> 仍然能直达 —— 内容还是占位的，先不对外露入口。
-      // 想放出来就删掉这一行。
-      hidden: true,
+      // EdenLive 进来之后这个栏目就有真内容了，入口放出来。
+      // 想临时藏回去就加一行 hidden: true —— 数据和路由都还在，
+      // ?s=project / ?p=<id> 仍然能直达。
       key: "project",
       label: { zh: "项目", en: "Project" },
       title: { zh: "项目", en: "Projects" },
@@ -145,199 +165,554 @@ window.SITE_DATA = {
   /* ---------------------------------------------------------------- 项目 */
   /* Project 栏目（放在 Research 上面）。适合放对外发布的系统、模型、工具 ——
    * 通常没有 venue，但有 demo / 代码 / 权重链接。
-   * 字段和 papers[] 完全一样，用不到的删掉即可。
-   * 下面两条都是占位内容，替换成真实项目。 */
+   * 字段和 papers[] 完全一样，用不到的删掉即可。 */
   projects: [
+    /* ======================================================== EdenLive ===
+     * 页面结构（sections 的顺序就是页面顺序）：
+     *   hero（backdrop 视频打底：标题 / 作者 / 按钮压在上面）
+     *   → TL;DR（subtitle 字段）
+     *   → teaser（宣传片）
+     *   → Abstract
+     *   → overview     输入输出 + 整体流程
+     *   → interaction  交互回路（紧跟 overview：都是在讲「怎么跑」）
+     *   → highlights   四个特点
+     *   → method       视觉编码器 / 数据 / 蒸馏
+     *   → apps         应用方向展开（本页重点，每个一节，tocDepth: 2）
+     *   → comparison   和其他路线的对比
+     *   → limitations
+     *
+     * 素材目前全是占位的 assets/placeholder/*.svg，真素材进来后按下面每处
+     * 的注释替换（视频一律 mp4，teaser 记得配 poster）。 */
     {
-      id: "mira-world-sim",
+      id: "edenlive",
       title: {
-        zh: "Mira World Sim：一个*可交互*的世界模拟器（占位）",
-        en: "Mira World Sim: An *Interactive* World Simulator (placeholder)",
+        zh: "EdenLive：以参考为控制的*实时生成式渲染*",
+        en: "EdenLive: *Real-Time Generative Rendering* from Any Reference",
       },
-      short: "World Sim",
+      titleBreakAfter: { zh: "", en: "EdenLive: *Real-Time Generative Rendering*" },
+      short: "EdenLive",
+      /* TL;DR 只说一句话。详细的输入输出、布局与外观怎么分工，
+       * 留给下面的 overview 一节 —— 这里铺开会变成第二个摘要。 */
       subtitle: {
-        zh: "给定一帧画面和一串动作，预测世界接下来会变成什么样。",
-        en: "Given a frame and a stream of actions, predict what the world does next.",
+        zh: "EdenLive 以 proxy 或参考视频流为输入，以不低于 24 fps 的速度生成精细视频。",
+        en: "EdenLive renders fine video at 24 fps or more from a proxy or " +
+            "reference video stream.",
       },
-      date: "2026-08",
-      thumb: "assets/placeholder/tile-1.svg",
-      keywords: ["world model", "world simulation", "interactive generation"],
+      date: "2026-10",
+      /* 首页卡片的封面。别的条目用的是 HF 上的示意图，这个是拿 088（第一人称
+       * 冰冻枪）擦除片的首帧裁成 16:10 做的 —— 左边 proxy、右边成片，本来就
+       * 把 EdenLive 在做的事画在一张图里了。文字压在左半边，那边加了一层蒙版。
+       * 重做见 scripts/cover.py。 */
+      thumb: "assets/edenlive/cover.jpg",
+      keywords: [
+        "generative rendering",
+        "real-time video generation",
+        "proxy-to-fine",
+        "interactive world",
+      ],
 
+      /* hero 背景：两行横向滚动的视频条带，标题和按钮压在上面
+       * 第一行 13 格、第二行 14 格，共 27 个 clip。
+       * 两行方向相反，视觉上更像「一片正在跑的素材」而不是一条传送带。
+       *
+       * 纯装饰：aria-hidden、不给控制条、静音循环，并且是懒加载的 ——
+       * 只有滚到视野附近的格子才真正下载。读者要看的是下面的 teaser。
+       * 右下角有个暂停按钮（动效 + 流量都能被用户掐掉）。 */
+      backdrop: {
+        rows: [
+          [
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/c901fab6.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/f4bb3f37.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/afb26e68.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/4c37c8d1.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/34bd577a.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/948449bc.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ca38f196.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/6d9632a9.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1cbd0d35.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/c6e8434c.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/0890969e.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/71585601.mp4",
+          ],
+          [
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/8da956a9.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/4d69026d.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/075191ee.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/d0a94370.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/cffd5edf.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/8dd568c5.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/2cd581b1.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/5c88a24a.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e2521235.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ee67545b.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/00282906.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/801ad06f.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/a4195340.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/92849ce6.mp4",
+            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/7eb84745.mp4",
+          ],
+        ],
+      },
+
+      // TODO: 补齐真实作者名单和单位
       authors: [
-        { name: "Zehuan Huang", url: "https://x.com/huanngzh", affil: [1] },
         { name: { zh: "合作者", en: "Collaborator" }, url: "#", affil: [1] },
       ],
       affiliations: ["Eden"],
 
+      // TODO: 发布时补上真实地址
       links: [
-        { label: { zh: "在线演示", en: "Demo" }, href: "#", icon: "demo" },
+        { label: { zh: "论文", en: "Paper" }, href: "#", icon: "arxiv" },
         { label: { zh: "代码", en: "Code" }, href: "#", icon: "github" },
-        { label: { zh: "模型", en: "Model" }, href: "#", icon: "hf" },
+        { label: { zh: "模型权重", en: "Weights" }, href: "#", icon: "hf" },
+        { label: { zh: "在线试玩", en: "Live Demo" }, href: "#", icon: "demo" },
       ],
 
+      /* 宣传片。TL;DR 之后、摘要之前的那一段。 */
       teaser: {
-        src: "assets/placeholder/teaser-a.svg",
+        src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e64ab20b.mp4",
         caption: {
-          zh: "Teaser 占位：换成一段交互录屏，说明用户输入什么、模型输出什么。",
-          en: "Placeholder teaser: swap in a screen recording showing input actions and " +
-              "the model's response.",
+          zh: "宣传片：从 proxy 画面到实时渲染结果，以及同一参考下的不同画风。",
+          en: "Overview film: from proxy frames to real-time rendered output, and several " +
+              "looks driven by the same reference.",
         },
       },
 
+      /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
       highlights: [
-        { value: "30 FPS", label: { zh: "交互帧率", en: "interactive" } },
-        { value: "60s", label: { zh: "可持续时长", en: "rollout length" } },
-        { value: "720p", label: { zh: "输出分辨率", en: "output" } },
+        { value: ">24 FPS", label: { zh: "实时生成", en: "real-time" } },
+        { value: { zh: "分钟级", en: "Minutes" }, label: { zh: "连续时长", en: "continuous" } },
+        { value: "480P/720P", label: { zh: "输出分辨率", en: "output" } },
+        { value: { zh: "单 GPU", en: "Single GPU" }, label: { zh: "部署", en: "deployment" } },
       ],
 
       abstract: {
-        zh: "项目介绍占位。说清这个系统能做什么、谁用得上、怎么上手。" +
-            "项目页和论文页的区别是：读者更关心能不能跑起来，所以把 demo、" +
-            "安装步骤、限制条件写在前面。",
-        en: "Placeholder project intro. Say what the system does, who it is for, and how to " +
-            "start using it. Unlike a paper page, readers here mostly want to know whether " +
-            "they can run it — so lead with the demo, the install steps, and the limits.",
+        zh: "EdenLive 是 Project Eden 系列中面向交互场景的生成式视频实时渲染模型。" +
+            "它以 proxy 或参考视频作为控制信号，结合目标首帧与文本提示词，" +
+            "持续生成更精细、可呈现不同画风的视频。proxy 是交代场景布局、镜头和运动的" +
+            "简化画面，可以来自代码 Agent 搭建的场景、现有引擎或工作台，已有视频也可以" +
+            "直接作为参考输入。与把交互状态也一并交给模型的做法不同，" +
+            "EdenLive 把状态维护和画面渲染解耦：规则、碰撞、血条这些由上游脚本或引擎负责，" +
+            "EdenLive 只负责沿着空间与结构参考把画面渲染出来。" +
+            "这让它既能接入持续变化的实时参考流，也能对已有视频做重渲染。",
+        en: "EdenLive is the real-time generative video renderer in the Project Eden series, " +
+            "built for interactive settings. It takes a proxy or reference video as its " +
+            "control signal and combines it with a target first frame and a text prompt to " +
+            "continuously generate finer, restyled video. A proxy is a simplified rendering " +
+            "that conveys scene layout, camera, and motion. It may come from a coding agent, " +
+            "an existing engine, or a workbench, and recorded video can serve as a reference " +
+            "directly. Unlike approaches that hand interaction state to the model as well, " +
+            "EdenLive decouples state from rendering: rules, collisions, and health bars stay " +
+            "with the upstream script or engine, while EdenLive only renders along the spatial " +
+            "and structural reference. That lets it consume a live, continuously changing " +
+            "reference stream as readily as it re-renders existing footage.",
       },
 
       sections: [
+        /* ---------------------------------------------------------- overview */
+        {
+          type: "figure",
+          id: "overview",
+          eyebrow: { zh: "总览", en: "Overview" },
+          title: { zh: "输入、输出与整体流程", en: "Inputs, Outputs, and the Pipeline" },
+          body: {
+            zh: "<p><b>输入</b>有三路：一路是 <b>proxy 或参考视频（流）</b>，" +
+                "提供布局、镜头与运动；一路是 <b>目标首帧</b>，定下画面的外观基调；" +
+                "一路是<b>文本提示词</b>，补充画风和细节描述。" +
+                "proxy 的来源不限 —— 代码 Agent 搭出来的 2D / 3D 场景、现有引擎或工作台的" +
+                "动画与仿真画面、乃至一段录屏，都可以直接用。" +
+                "<b>输出</b>是一段精细的视频，或者一条持续的视频流。</p>" +
+                "<p>EdenLive 可以概括为 <b>proxy-to-fine</b>：" +
+                "它关注参考画面提供的结构与运动，而不要求输入参考达到某种细节度或" +
+                "来自某种特定制作方式。两个亮点是<b>实时</b>（单 GPU 上不低于 24 fps）" +
+                "和<b>长时</b>（分钟级连续生成）—— 这两条合在一起，才让「渲染」能接到" +
+                "一个持续变化的交互回路上。</p>",
+            en: "<p>There are three <b>inputs</b>: a <b>proxy or reference video (stream)</b> " +
+                "that carries layout, camera, and motion; a <b>target first frame</b> that " +
+                "sets the overall look; and a <b>text prompt</b> that fills in style and " +
+                "detail. The proxy can come from anywhere — a 2D or 3D scene assembled by a " +
+                "coding agent, animation or simulation frames from an existing engine or " +
+                "workbench, even a screen recording. The <b>output</b> is a finer video, or a " +
+                "continuous video stream.</p>" +
+                "<p>EdenLive can be summed up as <b>proxy-to-fine</b>: it attends to the " +
+                "structure and motion the reference provides, without requiring that " +
+                "reference to hit a particular level of detail or come from a particular " +
+                "production path. Its two defining properties are being <b>real-time</b> " +
+                "(24 fps or more on a single GPU) and <b>long-horizon</b> (minutes of " +
+                "continuous generation). Together those are what let rendering sit inside a " +
+                "live interaction loop at all.</p>",
+          },
+          src: {
+            zh: "assets/edenlive/pipeline-zh.svg",
+            en: "assets/edenlive/pipeline-en.svg",
+          },
+          caption: {
+            zh: "<b>整体流程。</b>输入来源（代码 Agent / 引擎工作台 / 已有视频）→ " +
+                "proxy 或参考视频流 → EdenLive 生成式渲染（叠加目标首帧与提示词）→ " +
+                "精细视频流。自定义交互由上游的代码和引擎定义，读者看到画面后继续操作，" +
+                "形成闭环。",
+            en: "<b>Pipeline.</b> Input sources (coding agent, engine or workbench, existing " +
+                "video) → proxy or reference stream → EdenLive generative rendering, " +
+                "conditioned on the target first frame and prompt → fine video stream. " +
+                "Custom interaction is defined upstream in code or the engine; the viewer " +
+                "acts on what they see, closing the loop.",
+          },
+        },
+        {
+          type: "figure",
+          id: "interaction",
+          eyebrow: { zh: "交互回路", en: "Interaction loop" },
+          title: { zh: "交互逻辑在先，画面随参考变化", en: "Logic First, Pixels Follow" },
+          body: {
+            zh: "<p>以游戏为例：Code Agent 先生成" +
+                "场景 proxy 和引擎代码，由它负责状态与交互逻辑。玩家体验游戏时，" +
+                "鼠标键盘操作交给引擎，由它更新交互状态并输出简化画面；" +
+                "这串 <b>proxy 帧流</b>逐步传给 EdenLive，叠加目标首帧与提示词后" +
+                "持续生成精细画面；用户看到结果，继续下一步操作。" +
+                "<b>规则、碰撞、状态与反馈始终由上游维护</b>，从而从视频扩散模型中解耦出来" +
+                "—— 这正是<b>纯靠 action 条件生成的世界模型难以处理的部分</b>" +
+                "（血条、技能冷却、NPC 状态、成功与失败的反馈）。</p>",
+            en: "<p>Take a game as the example. A " +
+                "coding agent first produces the scene proxy and engine code, owning the state " +
+                "and the interaction logic. While the player plays, their mouse and keyboard " +
+                "input goes to the engine, which updates interaction state and emits simplified " +
+                "frames. That <b>proxy frame stream</b> feeds into EdenLive, which — conditioned " +
+                "on the target first frame and prompt — continuously renders fine frames. The " +
+                "user sees the result and acts again. <b>Rules, collisions, state, and feedback " +
+                "stay upstream throughout</b>, decoupled from the video diffusion model — which " +
+                "is exactly <b>the part purely action-conditioned world models struggle " +
+                "with</b>: health bars, cooldowns, NPC state, and any signal of success or " +
+                "failure.</p>",
+          },
+          src: {
+            zh: "assets/edenlive/interaction-zh.svg",
+            en: "assets/edenlive/interaction-en.svg",
+          },
+          caption: {
+            zh: "<b>交互回路。</b>用户操作 → 引擎更新状态 → proxy 帧流 → " +
+                "EdenLive 持续生成 → 显示画面 → 继续操作。" +
+                "端到端延迟指从用户操作到对应画面出现，目前在百毫秒级。",
+            en: "<b>Interaction loop.</b> User input → engine updates state → proxy frame " +
+                "stream → EdenLive renders continuously → frames shown → next input. " +
+                "End-to-end latency, from input to the corresponding frame appearing, is " +
+                "currently in the hundreds of milliseconds.",
+          },
+        },
+
+        /* ----------------------------------------------------------- method */
         {
           type: "features",
-          id: "capabilities",
-          eyebrow: { zh: "能做什么", en: "What it does" },
-          title: { zh: "应用场景", en: "Where It Applies" },
+          id: "highlights",
+          eyebrow: { zh: "亮点", en: "Highlights" },
+          title: { zh: "EdenLive 的四个特点", en: "What Sets EdenLive Apart" },
           items: [
             {
-              title: { zh: "游戏", en: "Gaming" },
+              title: { zh: "多种参考输入", en: "Many kinds of reference" },
               body: {
-                zh: "把玩家操作直接喂给模型，生成可玩的场景演化。",
-                en: "Feed player input straight to the model and get playable scene dynamics.",
+                zh: "2D / 3D proxy 和参考视频都能用。关注的是参考提供的结构与运动，" +
+                    "不把输入限定在某一种细节度或制作方式。",
+                en: "2D or 3D proxies and reference video all work. What matters is the " +
+                    "structure and motion the reference provides, not its level of detail " +
+                    "or how it was produced.",
               },
               icon: "spark",
             },
             {
-              title: { zh: "机器人仿真", en: "Robotics simulation" },
+              title: { zh: "保留布局，改变外观", en: "Keep the layout, change the look" },
               body: {
-                zh: "在真实机器人之前，先在预测出的世界里试策略。",
-                en: "Try policies in a predicted world before touching real hardware.",
-              },
-              icon: "bolt",
-            },
-            {
-              title: { zh: "视频生成", en: "Video synthesis" },
-              body: {
-                zh: "长时序一致的视频，靠的是世界状态而不是逐帧硬凑。",
-                en: "Long-horizon consistent video, driven by world state rather than " +
-                    "frame-by-frame guesswork.",
+                zh: "镜头、布局与动作跟着参考走，目标外观和画风由首帧与提示词灵活指定 —— " +
+                    "同一段参考可以渲出完全不同的画风。",
+                en: "Camera, layout, and motion follow the reference, while the target look " +
+                    "comes from the first frame and prompt — one reference, many distinct " +
+                    "styles.",
               },
               icon: "video",
             },
             {
-              title: { zh: "具身智能", en: "Embodied intelligence" },
+              title: { zh: "实时且长时", en: "Real-time and long-horizon" },
               body: {
-                zh: "给智能体一个可以规划的内部世界。",
-                en: "Give an agent an internal world it can plan against.",
+                zh: "单 GPU 上不低于 24 fps，支持分钟级连续生成，" +
+                    "可以把渲染接到持续、实时变化的参考画面上。",
+                en: "24 fps or more on a single GPU, sustained for minutes, so rendering can " +
+                    "attach to a continuously changing live reference.",
               },
-              icon: "check",
+              icon: "bolt",
+            },
+            {
+              title: { zh: "开源", en: "Open source" },
+              body: {
+                zh: "放出不同尺寸的模型权重、推理与评测代码，以及一条端到端 demo：" +
+                    "提示词出游戏 → 试玩 → 定首帧 → EdenLive 实时渲染。",
+                en: "Model weights at several sizes, inference and evaluation code, plus an " +
+                    "end-to-end demo: prompt a game, play it, pick a first frame, and let " +
+                    "EdenLive render it live.",
+              },
+              icon: "github",
             },
           ],
         },
         {
-          type: "figure",
-          id: "system",
-          eyebrow: { zh: "系统", en: "How it works" },
-          title: { zh: "系统结构", en: "System" },
+          type: "features",
+          id: "method",
+          eyebrow: { zh: "方法", en: "Method" },
+          title: { zh: "核心技术", en: "Core Techniques" },
           body: {
-            zh: "一到两段说清数据流。可以在文字里用 <b>加粗</b> 强调关键模块，" +
-                "也可以写 <code>符号</code>。",
-            en: "One or two paragraphs on the data flow. You can <b>bold</b> key modules and " +
-                "write <code>symbols</code> inline.",
+            zh: "三件事决定了 EdenLive 能不能「跟得住参考」并且「跑得够快」。" +
+                "细节见论文。",
+            en: "Three things decide whether EdenLive can follow a reference faithfully and " +
+                "still run fast enough. See the paper for details.",
           },
-          src: "assets/placeholder/method.svg",
-          caption: {
-            zh: "图 1：结构占位图。左到右：观测 → 状态编码 → 动作条件预测 → 渲染。",
-            en: "Figure 1: placeholder diagram. Left to right: observation → state encoder → " +
-                "action-conditioned prediction → renderer.",
-          },
-        },
-        {
-          type: "steps",
-          id: "usage",
-          title: { zh: "快速开始", en: "Get Started" },
-          body: { zh: "三步跑起来。", en: "Running in three steps." },
           items: [
-            { title: { zh: "安装", en: "Install" }, body: "<code>pip install -e .</code>" },
             {
-              title: { zh: "下载权重", en: "Download weights" },
-              body: "<code>bash scripts/download.sh</code>",
+              title: { zh: "提取结构与运动的视觉编码器", en: "Structure-and-motion encoder" },
+              body: {
+                zh: "从参考画面里抽出布局、镜头与运动，并丢掉外观细节 —— " +
+                    "这是「参考不必精细」的前提，也让同一段 proxy 能渲出不同画风。",
+                en: "Pulls layout, camera, and motion out of the reference while discarding " +
+                    "appearance. This is what lets the reference stay coarse, and what lets " +
+                    "one proxy render into many different looks.",
+              },
+              icon: "spark",
             },
             {
-              title: { zh: "运行", en: "Run" },
-              body: "<code>python demo.py --scene kitchen</code>",
+              title: { zh: "高质量数据管线", en: "High-quality data pipeline" },
+              body: {
+                zh: "构造「粗参考 → 精细画面」的配对数据，覆盖 2D / 3D proxy、" +
+                    "引擎画面和真实视频，让模型见过足够多的参考形态。",
+                en: "Builds coarse-reference-to-fine-frame pairs spanning 2D and 3D proxies, " +
+                    "engine output, and real video, so the model has seen enough kinds of " +
+                    "reference.",
+              },
+              icon: "data",
+            },
+            {
+              title: { zh: "实时视频蒸馏", en: "Real-time video distillation" },
+              body: {
+                zh: "把多步扩散蒸馏成少步的流式生成，是 >24 fps 和分钟级连续生成的" +
+                    "直接来源。",
+                en: "Distills multi-step diffusion into few-step streaming generation — the " +
+                    "direct source of >24 fps and minutes-long rollouts.",
+              },
+              icon: "bolt",
             },
           ],
         },
+
+        /* ------------------------------------------------------------- apps */
+        {
+          type: "text",
+          id: "applications",
+          eyebrow: { zh: "应用", en: "Applications" },
+          // 不写「四类」：下面只是举了四个方向，不是说总共就这么多
+          title: { zh: "应用方向", en: "Application Areas" },
+          body: {
+            zh: "<p>下面分节展开几个方向。共同的前提是：" +
+                "<b>参考画面约束布局与运动，外观由首帧和提示词指定</b> —— " +
+                "所以凡是「结构已经有了、缺的是画面」的场合都适用。</p>",
+            en: "<p>A few directions are expanded below. The shared premise: <b>the reference " +
+                "constrains layout and motion, while the first frame and prompt set the " +
+                "look</b> — so any setting where the structure already exists and only the " +
+                "pixels are missing is a fit.</p>",
+          },
+        },
+        {
+          type: "carousel",
+          id: "app-game",
+          tocDepth: 2,   // 目录里缩进成 applications 的子项
+          eyebrow: { zh: "应用", en: "Application" },
+          title: { zh: "游戏类交互式预览", en: "Interactive Game Preview" },
+          body: {
+            zh: "<p>这是最能体现解耦设计的一类。Code Agent 生成场景 proxy 和引擎代码，" +
+                "负责状态与交互控制；EdenLive 作为实时渲染器持续合成高保真画面。</p>",
+            en: "<p>This is where the decoupled design shows most clearly. A coding agent " +
+                "produces the scene proxy and engine code, owning state and interaction; " +
+                "EdenLive acts as the real-time renderer.</p>",
+          },
+          perPage: 1,
+          layout: "centered",
+          items: [
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/bafe32b9.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/cf2421f7.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/edf33f08.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/56ac4b6b.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e60f6083.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1c70aa33.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/bb6c2841.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e7d6e8a9.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/8811e6ec.mp4", controls: true },
+          ],
+        },
+        {
+          type: "carousel",
+          id: "app-preview",
+          tocDepth: 2,   // 目录里缩进成 applications 的子项
+          eyebrow: { zh: "应用", en: "Application" },
+          title: { zh: "场景与动画预览", en: "Scene and Animation Preview" },
+          body: {
+            zh: "同一套布局与运镜，渲出不同的外观。适合在美术资产尚未就绪时" +
+                "先看画面感觉 —— 布局、镜头、动作都已经由 proxy 定下，" +
+                "需要试的只是画风。",
+            en: "One layout and camera move, many looks. Useful before art assets exist: " +
+                "layout, camera, and motion are already fixed by the proxy, so the only " +
+                "variable left is style.",
+          },
+          perPage: 1,
+          layout: "centered",
+          items: [
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ae454d05.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/2819fbee.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/65e47fb6.mp4", controls: true },
+            // 新增的成片：DMD 720p 优先，wan21 14b 480p 排在后面
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/efd72737.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/de031217.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/33bb38e6.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/096ca570.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/3ebf1fa9.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/3d9a9e41.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/67ead996.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/32b05736.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/537bd181.mp4", controls: true },
+          ],
+        },
+        {
+          type: "carousel",
+          id: "app-restyle",
+          tocDepth: 2,   // 目录里缩进成 applications 的子项
+          eyebrow: { zh: "应用", en: "Application" },
+          title: { zh: "视频重渲染与换皮", en: "Video Re-Rendering and Restyling" },
+          body: {
+            zh: "以已有视频为参考，保留布局与运动、改变外观：" +
+                "实时串流替换角色、内容或整体画风。",
+            en: "Take existing video as the reference, keep its layout and motion, and change " +
+                "the appearance — swapping a character, the content, or the overall style in " +
+                "a live stream.",
+          },
+          perPage: 1,
+          layout: "centered",
+          items: [
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/c7560051.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1515283e.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/60e3c4d9.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/6becd8f3.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/72a254b9.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/2f8eeb65.mp4", controls: true },
+          ],
+        },
+        {
+          type: "carousel",
+          id: "app-embodied",
+          tocDepth: 2,   // 目录里缩进成 applications 的子项
+          eyebrow: { zh: "应用", en: "Application" },
+          title: { zh: "具身数据增强", en: "Embodied Data Augmentation" },
+          body: {
+            zh: "把真实的人类操作视频转成机器人视角的画面，" +
+                "或替换已有第一人称视频里的物体、给它换个画风。",
+            en: "Turn real human manipulation footage into robot-view frames, or replace " +
+                "some objects or restyle existing ego video.",
+          },
+          perPage: 1,
+          layout: "centered",
+          items: [
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/748848e0.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ef7f3a46.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/80ac72ba.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1fb017f8.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/29e08b3c.mp4", controls: true },
+            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/5a96da28.mp4", controls: true },
+          ],
+        },
+
+        /* ------------------------------------------------------- comparison */
+        {
+          type: "table",
+          id: "comparison",
+          eyebrow: { zh: "对比", en: "Comparison" },
+          title: { zh: "与其他路线的区别", en: "How EdenLive Differs" },
+          body: {
+            zh: "并非逐项优劣的评测，而是说明定位上的差别 —— " +
+                "各条路线想解决的问题本来就不同。",
+            en: "Not a scorecard — a note on positioning. These lines of work are aimed at " +
+                "different problems.",
+          },
+          columns: [
+            { zh: "路线", en: "Approach" },
+            { zh: "做法", en: "How it works" },
+            { zh: "EdenLive 的差别", en: "Where EdenLive differs" },
+          ],
+          // 这张表是说明文字，不是数字。wrap 让单元格在栏宽内折行，
+          // 否则 nowrap 会把右列挤出视口，只能横着拖。
+          wrap: true,
+          rows: [
+            [
+              { zh: "交互式世界模型（Lingbot World、Pixverse R 系列等）",
+                en: "Interactive world models (Lingbot World, Pixverse R, …)" },
+              { zh: "以 action 或文本为条件，直接生成交互画面",
+                en: "Generate interactive frames conditioned on actions or text" },
+              { zh: "解耦状态与渲染：proxy 提供状态和交互控制，EdenLive 只负责渲染，" +
+                    "所以血条、冷却、NPC 状态和成败反馈都能维持",
+                en: "Decouples state from rendering: the proxy owns state and interaction " +
+                    "while EdenLive only renders, so health, cooldowns, NPC state, and " +
+                    "success/failure feedback all survive" },
+            ],
+            [
+              "Vidu S2",
+              { zh: "同样能做实时参考生成", en: "Also does real-time reference-driven generation" },
+              { zh: "Vidu S2 基本只支持人像场景，EdenLive 支持各种参考",
+                en: "Vidu S2 is largely limited to portrait scenes; EdenLive handles " +
+                    "references of many kinds" },
+            ],
+            [
+              { zh: "白模渲染（Seedance 2.5、MiniMax H3）",
+                en: "Untextured-mesh rendering (Seedance 2.5, MiniMax H3)" },
+              { zh: "以白模等高度规范的输入驱动生成",
+                en: "Driven by highly standardized input such as untextured meshes" },
+              { zh: "EdenLive 实时、长时，且不要求参考达到某种细节度或制作方式",
+                en: "EdenLive is real-time and long-horizon, and does not require the " +
+                    "reference to hit a given level of detail or pipeline" },
+            ],
+            [
+              "DLSS 5",
+              { zh: "在既有渲染管线上做超分与插帧",
+                en: "Upscaling and frame generation on top of an existing render pipeline" },
+              { zh: "EdenLive 是生成式渲染：外观可以整体改变，不受原始资产限制",
+                en: "EdenLive is generative: the appearance can change wholesale, " +
+                    "unconstrained by the original assets" },
+            ],
+            [
+              "Meshy Mora",
+              { zh: "原理上也是实时视频画风转换",
+                en: "Also real-time video restyling in principle" },
+              { zh: "EdenLive 不限于特定几款游戏，也不要求输入是已做好纹理的游戏资产",
+                en: "EdenLive is not tied to a handful of specific games, and does not " +
+                    "require finished, textured game assets as input" },
+            ],
+          ],
+          // 不设 highlightRows：这张表讲的是定位差别，没有「我们那一行」可高亮
+        },
+
+        /* ------------------------------------------------------ limitations */
         {
           type: "text",
           id: "limitations",
+          eyebrow: { zh: "限制", en: "Limitations" },
           title: { zh: "已知限制", en: "Limitations" },
           body: {
-            zh: "占位：把不擅长的场景、失败模式、算力要求老实写在这里 —— " +
-                "项目页最有用的一节往往是这一节。",
-            en: "Placeholder: be upfront about failure modes, unsupported scenes, and compute " +
-                "requirements. On a project page this is often the most useful section.",
+            zh: "<p><b>细小物体的控制与稳定性。</b>参考画面里尺度很小的物体，" +
+                "其位置和形态在连续生成中容易不稳，ID 保持也更困难。</p>" +
+                "<p><b>交互延迟。</b>从用户操作到对应画面出现，目前在百毫秒级。" +
+                "对漫游和低频交互够用，高频对抗类场景会感觉到。</p>" +
+                "<p><b>记忆。</b>超出上下文窗口的内容不保证一致 —— " +
+                "离开再回到同一处时，画面细节可能和先前不同。</p>",
+            en: "<p><b>Control and stability for small objects.</b> Objects that occupy few " +
+                "pixels in the reference tend to drift in position and shape over a long " +
+                "rollout, and identity is harder to preserve.</p>" +
+                "<p><b>Interaction latency.</b> From input to the corresponding frame is " +
+                "currently in the hundreds of milliseconds — fine for exploration and " +
+                "low-frequency interaction, noticeable in fast competitive settings.</p>" +
+                "<p><b>Memory.</b> Content beyond the context window is not guaranteed to " +
+                "stay consistent: leaving a spot and returning may yield different " +
+                "details.</p>",
           },
-        },
-      ],
-    },
-
-    {
-      id: "mira-sim-bench",
-      title: {
-        zh: "Mira Sim Bench：世界模型的*评测套件*（占位）",
-        en: "Mira Sim Bench: An *Evaluation Suite* for World Models (placeholder)",
-      },
-      short: "Sim Bench",
-      subtitle: {
-        zh: "统一的场景、动作序列和指标，用来比较不同世界模型的预测质量。",
-        en: "Shared scenes, action traces, and metrics for comparing world-model predictions.",
-      },
-      date: "2026-04",
-      thumb: "assets/placeholder/tile-3.svg",
-      keywords: ["benchmark", "world model", "evaluation"],
-
-      authors: [{ name: { zh: "占位作者", en: "Placeholder Author" }, url: "#", affil: [1] }],
-      affiliations: ["Eden"],
-
-      links: [
-        { label: { zh: "代码", en: "Code" }, href: "#", icon: "github" },
-        { label: { zh: "数据", en: "Data" }, href: "#", icon: "data" },
-      ],
-
-      teaser: { src: "assets/placeholder/teaser-b.svg" },
-
-      abstract: {
-        zh: "第二个项目占位。只填了必要字段：没有 highlights、没有 bibtex，页面会自动" +
-            "少掉这几块，不需要动 HTML。",
-        en: "Second placeholder project — minimal fields only. No highlights, no BibTeX; " +
-            "those blocks simply disappear, no HTML changes needed.",
-      },
-
-      sections: [
-        {
-          type: "table",
-          id: "tasks",
-          title: { zh: "包含的任务", en: "Tasks" },
-          body: { zh: "占位表格。", en: "Placeholder table." },
-          columns: [
-            { zh: "任务", en: "Task" },
-            { zh: "场景数", en: "Scenes" },
-            { zh: "时长", en: "Horizon" },
-          ],
-          rows: [
-            [{ zh: "室内导航", en: "Indoor navigation" }, "120", "10s"],
-            [{ zh: "桌面操作", en: "Tabletop manipulation" }, "80", "5s"],
-            [{ zh: "开放场景驾驶", en: "Open-world driving" }, "60", "20s"],
-          ],
         },
       ],
     },
@@ -348,6 +723,148 @@ window.SITE_DATA = {
    * sections 是有序数组，type 决定渲染方式，目前支持：
    *   text | figure | gallery | video | compare | table | features | steps  */
   papers: [
+    {
+      id: "multilive",
+      title: {
+        zh: "MultiLive：面向*多视角视频生成*的视频与多视角先验蒸馏",
+        en: "MultiLive: On-Policy Distillation of Video and Multi-View Priors for *Multi-View Video Generation*",
+      },
+      /* 中文标题短、本来就一行，显式写空串。写整句的话 heroTitleHTML()
+       * 要求前缀后面跟一个空格才断行，整句匹配不上、结果也是不断行，
+       * 但那是靠巧合。
+       * 英文断在 "Priors" 后面：高亮词在第二行，第一行不会只剩半句强调。 */
+      titleBreakAfter: {
+        zh: "",
+        en: "MultiLive: On-Policy Distillation of Video and Multi-View Priors",
+      },
+      short: "MultiLive",
+      subtitle: {
+        zh: "用 on-policy 双教师蒸馏，把视频先验的时间动态与多视角先验的几何一致性结合到同一个生成器中。",
+        en: "On-policy dual-teacher distillation combines temporal dynamics from video priors with geometric consistency from multi-view priors in one generator.",
+      },
+      date: "2026-10",
+      thumb: ML + "cover.jpg",
+      keywords: [
+        { zh: "多视角视频", en: "multi-view video" },
+        { zh: "双教师蒸馏", en: "dual-teacher distillation" },
+        { zh: "世界模型", en: "world model" },
+        { zh: "四步生成", en: "4-step generation" },
+      ],
+
+      authors: [
+        { name: "Yifan Niu", affil: [1, 2], note: "*", bold: true },
+        { name: "Yang-Tian Sun", affil: [1, 3], note: "*,†", bold: true },
+        { name: "Haoran Feng", affil: [1, 4] },
+        { name: "Lu Sheng", affil: [2] },
+        { name: "Yan-Pei Cao", affil: [1], note: "✉", bold: true, breakBefore: true },
+        { name: "Zehuan Huang", affil: [1], note: "✉,†", bold: true },
+      ],
+      affiliations: ["VAST", "BUAA", "HKU", "THU"],
+      authorNotes: {
+        zh: "* 同等贡献　✉ 通讯作者　† 项目负责人",
+        en: "* Equal contribution　✉ Corresponding authors　† Project leads",
+      },
+
+      links: [
+        { label: "PDF", href: ML + "paper.pdf", icon: "paper" },
+        { label: "Code", href: "https://github.com/VAST-AI-Research/MultiLive", icon: "github" },
+      ],
+
+      teaser: {
+        src: ML + "teaser.mp4",
+        poster: ML + "teaser.jpg",
+        autoplay: false,
+        loop: false,
+        caption: {
+          zh: "MultiLive 从文本提示和相机条件联合生成同步的多视角视频；视频教师约束时间动态，多视角教师约束跨视角几何与外观。",
+          en: "MultiLive jointly generates synchronized multi-view videos from text and camera conditions: a video teacher guides temporal dynamics while a multi-view teacher guides geometry and appearance.",
+        },
+      },
+
+      highlights: [
+        { value: "4 views", label: { zh: "同步视角", en: "synchronized views" } },
+        { value: "4 steps", label: { zh: "去噪步数", en: "denoising steps" } },
+        { value: "No MV video", label: { zh: "训练数据", en: "training data" } },
+      ],
+
+      abstract: {
+        zh: "多视角视频生成同时要求跨视角几何一致和视频内时间连贯，但同步多视角视频训练数据稀缺。MultiLive 提出一种 on-policy 双教师分布匹配框架：视频教师约束每个视角中的运动与时间动态，多视角教师约束每个时间点的几何和外观一致性。两个目标都作用于学生同一次生成的多视角视频，通过共享的伪分数模型把互补先验蒸馏到同一个相机感知生成器中。这样无需显式三维重建或同步多视角视频训练数据，也能在推理时用 4 步去噪联合生成 4 个同步视角。",
+        en: "Multi-view video generation must satisfy cross-view geometric consistency and coherent temporal dynamics, yet synchronized multi-view video data are scarce. MultiLive introduces an on-policy dual-teacher distribution-matching framework: a video teacher constrains motion and temporal dynamics within each view, while a multi-view teacher constrains geometry and appearance across views at each time step. Both objectives operate on the same student-generated multi-view video and distill complementary priors into one camera-aware generator through a shared fake-score model. The result requires no explicit 3D reconstruction or synchronized multi-view video training data, and jointly generates four synchronized views in four denoising steps at inference.",
+      },
+
+      sections: [
+        {
+          type: "figure",
+          id: "pipeline",
+          title: { zh: "双教师蒸馏框架", en: "Dual-Teacher Distillation" },
+          body: {
+            zh: "<p>学生模型先以 on-policy 方式生成完整的时间 × 视角 latent 网格。相同样本沿两个方向读取：按视角切成视频轨迹交给视频教师，按时间切成同步多视角图像交给多视角教师。两个分支的分布匹配梯度共同更新同一个生成器。</p>",
+            en: "<p>The student first generates a complete time-by-view latent grid on-policy. The same sample is read in two ways: per-view temporal trajectories go to the video teacher, while synchronized multi-view slices go to the multi-view teacher. Their distribution-matching gradients update the same generator.</p>",
+          },
+          src: ML + "pipeline.jpg",
+          alt: { zh: "MultiLive 双教师蒸馏流程图", en: "MultiLive dual-teacher distillation pipeline" },
+          caption: {
+            zh: "同一次学生生成同时接受时间先验与多视角先验的监督。",
+            en: "One student rollout receives temporal and multi-view supervision simultaneously.",
+          },
+        },
+        {
+          type: "figure",
+          id: "architecture",
+          title: { zh: "模型结构", en: "Model Architecture" },
+          src: ML + "architecture.jpg",
+          alt: { zh: "MultiLive 模型结构图", en: "MultiLive model architecture" },
+          caption: {
+            zh: "相机感知的生成器在共享的多视角 latent 网格上工作，两个教师分支提供互补的 score 监督。",
+            en: "A camera-aware generator operates on a shared multi-view latent grid, with complementary score supervision from the two teacher branches.",
+          },
+        },
+        {
+          type: "figure",
+          id: "comparison",
+          title: { zh: "定性对比", en: "Qualitative Comparison" },
+          body: {
+            zh: "<p>MultiLive 在多种内容和风格上生成跨视角一致的动态场景，同时保持视频内运动连贯。</p>",
+            en: "<p>MultiLive produces cross-view consistent dynamic scenes across diverse content and styles while maintaining coherent motion within each video.</p>",
+          },
+          src: ML + "comparison.png",
+          alt: { zh: "MultiLive 与其他方法的定性对比", en: "Qualitative comparison with other methods" },
+        },
+        {
+          type: "carousel",
+          id: "mv-results",
+          title: { zh: "更多结果", en: "More Results" },
+          perPage: 1,
+          items: [
+            { src: ML + "results/lunar-astronaut.mp4" },
+            { src: ML + "results/eiffel-night.mp4" },
+            { src: ML + "results/mountain-road.mp4" },
+            { src: ML + "results/sunset-seaside.mp4" },
+            { src: ML + "results/flower-meadow.mp4" },
+            { src: ML + "results/blue-ufo.mp4" },
+            { src: ML + "results/red-macaw.mp4" },
+            { src: ML + "results/beach-run.mp4" },
+          ],
+        },
+        {
+          type: "carousel",
+          id: "demos",
+          title: { zh: "世界模型演示", en: "World Model Demos" },
+          body: {
+            zh: "<p>每段视频展示一个世界模型场景及其同步视角，底部动作提示展示交互控制。点击视频控制条可以暂停、拖动或全屏查看。</p>",
+            en: "<p>Each clip shows a world-model scene with synchronized views; the action prompts at the bottom visualize interactive control. Use the video controls to pause, scrub, or enter fullscreen.</p>",
+          },
+          perPage: 1,
+          items: [
+            { src: ML + "wm-horse.mp4?v=dial4", caption: { zh: "骑马穿过山谷", en: "Horse ride through a valley" } },
+            { src: ML + "wm-desert.mp4?v=dial4", caption: { zh: "荒原星球", en: "Desert planet" } },
+            { src: ML + "wm-forest.mp4?v=dial4", caption: { zh: "森林秋千", en: "Forest swing" } },
+            { src: ML + "wm-ocean.mp4?v=dial4", caption: { zh: "海上游泳", en: "Swimming in the ocean" } },
+          ],
+        },
+      ],
+    },
+
     {
       id: "mira-scene",
       title: {

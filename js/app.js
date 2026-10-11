@@ -44,12 +44,14 @@
       readMore: '阅读全文', viewProject: '查看项目',
       viewAll: (n) => `查看全部 ${n} 项`,
       abstract: '摘要', overview: '概览', bibtex: 'BibTeX', citeUs: '引用',
-      ack: '致谢',
+      ack: '致谢', tldr: 'TL;DR',
+      stripPause: '暂停背景视频', stripPlay: '播放背景视频',
       copy: '复制', copied: '已复制',
       navLabel: '主导航', tocLabel: '章节导航', footerLabel: '页脚链接',
       pickProject: '选择项目', zoomIn: (c) => `放大查看：${c}`,
       closePreview: '关闭预览', compareHint: (a) => `对比滑块：向右显示 ${a}`,
       samples: '样例', prevGroup: '上一组样例', nextGroup: '下一组样例',
+      samplePlay: '播放', samplePause: '暂停',
       groupOf: (i, n) => `第 ${i} 组，共 ${n} 组`,
       goToGroup: (i) => `跳到第 ${i} 组`,
       /* 三维查看器（sceneViewer / compareViewer 两个 section type 用） */
@@ -101,12 +103,14 @@
       readMore: 'Read more', viewProject: 'View project',
       viewAll: (n) => `View all ${n}`,
       abstract: 'Abstract', overview: 'Overview', bibtex: 'BibTeX', citeUs: 'Cite us',
-      ack: 'Acknowledgements',
+      ack: 'Acknowledgements', tldr: 'TL;DR',
+      stripPause: 'Pause background video', stripPlay: 'Play background video',
       copy: 'Copy', copied: 'Copied',
       navLabel: 'Main navigation', tocLabel: 'On this page', footerLabel: 'Footer links',
       pickProject: 'Select a project', zoomIn: (c) => `Zoom in: ${c}`,
       closePreview: 'Close preview', compareHint: (a) => `Comparison slider: drag right for ${a}`,
       samples: 'samples', prevGroup: 'Previous samples', nextGroup: 'Next samples',
+      samplePlay: 'Play', samplePause: 'Pause',
       groupOf: (i, n) => `Group ${i} of ${n}`,
       goToGroup: (i) => `Go to group ${i}`,
       /* 3D viewers (sceneViewer / compareViewer section types) */
@@ -200,6 +204,9 @@
     close: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M6 6l12 12M18 6 6 18"/></svg>',
     slider: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round" stroke-linejoin="round"><path d="m10 8-4 4 4 4M14 8l4 4-4 4"/></svg>',
     zoom: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><circle cx="11" cy="11" r="7"/><path d="M16 16l5 5M11 8v6M8 11h6"/></svg>',
+    // hero 背景条带的暂停 / 播放（实心三角和双竖条，小尺寸下比描边清楚）
+    play: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><path d="m8 5 12 7-12 7z"/></svg>',
+    pause: '<svg viewBox="0 0 24 24" fill="currentColor" stroke="none"><rect x="6.5" y="5" width="3.6" height="14" rx="1.1"/><rect x="13.9" y="5" width="3.6" height="14" rx="1.1"/></svg>',
     back: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M19 12H6M12 6l-6 6 6 6"/></svg>',
     arrow: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"><path d="M5 12h13M12 6l6 6-6 6"/></svg>',
     sun: '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.9" stroke-linecap="round"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M2 12h2M20 12h2M5 5l1.5 1.5M17.5 17.5 19 19M19 5l-1.5 1.5M6.5 17.5 5 19"/></svg>',
@@ -223,11 +230,16 @@
    * 那些是页面主内容，读者需要能暂停和拖进度条。
    * 传 lazy: true 则只把地址记在 data-src 上、先不加载，等轮播把它切进视野
    * 再由 initCarousel 填上 src（44 个视频同时预载会把 HF CDN 打满）。 */
-  function renderMedia(src, { poster, autoplay = true, controls, alt = '', lazy = false } = {}) {
+  function renderMedia(src, {
+    poster, autoplay = true, controls, alt = '', lazy = false, loop = true,
+  } = {}) {
+    // src 可以是 {zh, en}：中英各一份素材（比如带文字的示意图）。
+    // 字符串原样返回，所以别的调用方不受影响。
+    src = t(src);
     if (isVideo(src)) {
       const wantControls = controls === undefined ? !autoplay : controls;
       const v = el('video', {
-        src: lazy ? null : src, poster, playsinline: true, muted: true, loop: true,
+        src: lazy ? null : src, poster, playsinline: true, muted: true, loop,
         controls: wantControls, preload: lazy ? 'none' : 'metadata',
         autoplay: autoplay && !lazy ? true : null,
       });
@@ -256,7 +268,10 @@
         // 屏幕阅读器也能听出这个强调。
         const nameHTML = a.bold ? `<strong>${esc(t(a.name))}</strong>` : esc(t(a.name));
         const inner = `${nameHTML}${sup ? `<sup>${esc(sup)}</sup>` : ''}`;
-        return a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${inner}</a>` : inner;
+        const name = a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${inner}</a>` : inner;
+        // breakBefore：作者名单在这个名字前硬换行。给一行排不下的长名单用，
+        // 只在数据里显式标了才生效，别的论文不受影响。
+        return `${a.breakBefore ? '<br class="author-break" aria-hidden="true">' : ''}${name}`;
       });
       frag.append(el('div', { class: 'authors' }, names.join('<span aria-hidden="true">, </span>')));
     }
@@ -317,10 +332,72 @@
   const plain = (v) => String(t(v) ?? '').replace(/\*/g, '');
 
   /** hero 的三层背景，home / list / detail 共用 */
+  /** hero 的三层静态背景（晕光 / 网格 / 噪点）。home / list / detail 共用。 */
   function heroBackdrop(host) {
     host.append(el('div', { class: 'hero__aurora', 'aria-hidden': 'true' }));
     host.append(el('div', { class: 'hero__grid', 'aria-hidden': 'true' }));
     host.append(el('div', { class: 'hero__noise', 'aria-hidden': 'true' }));
+  }
+
+  /* hero 背景（数据里的 backdrop 字段），标题和按钮压在它上面。
+   * 给 EdenLive 这类「一眼看到效果」的项目用，论文页一般不配。
+   *
+   * 两种形态：
+   *   backdrop.rows  两行横向滚动的视频条带
+   *   backdrop.src   单个铺满的素材（图或视频）
+   *
+   * 和 heroBackdrop() 的三层是互斥的：配了 backdrop 就不画网格和晕光，
+   * 否则网格会透在画面上。纯装饰，所以 aria-hidden + 不给控制条；
+   * 真正要让读者看的那段视频是下面的 teaser。
+   *
+   * 滚动逻辑见 initHeroStrip()：这里只建 DOM，动起来要等节点进文档
+   * （要量 clientWidth / clientHeight，脱离文档时都是 0）。 */
+  function heroFilm(backdrop) {
+    if (!backdrop) return null;
+    const rows = Array.isArray(backdrop.rows)
+      ? backdrop.rows.filter((r) => Array.isArray(r) && r.length)
+      : null;
+    if (!rows && !backdrop.src) return null;
+
+    const layer = el('div', { class: 'hero__film', 'aria-hidden': 'true' });
+    // inert：读屏和 Tab 都不该进到纯装饰的背景里
+    layer.inert = true;
+
+    if (rows) {
+      const strip = el('div', { class: 'hero__strip' });
+      rows.forEach((items, i) => {
+        const row = el('div', { class: 'hero__strip-row', dataset: { row: String(i) } });
+        const track = el('div', { class: 'hero__strip-track' });
+        // 两行反向滚：同向会看成一整条传送带
+        track.dataset.dir = i % 2 ? 'back' : 'fwd';
+        items.forEach((src) => track.append(heroTile(src)));
+        row.append(track);
+        strip.append(row);
+      });
+      layer.append(strip);
+    } else {
+      layer.append(renderMedia(backdrop.src, {
+        poster: backdrop.poster, controls: false, alt: '',
+      }));
+    }
+
+    // 压一层蒙版，保证文字在任意亮度的画面上都读得清
+    layer.append(el('div', { class: 'hero__film-shade' }));
+    return layer;
+  }
+
+  /** 条带里的一格。src 先放 data-src，由 initHeroStrip() 懒加载。 */
+  function heroTile(src) {
+    const tile = el('div', { class: 'hero__tile' });
+    const v = el('video', {
+      muted: true, loop: true, playsinline: true, preload: 'none',
+    });
+    v.dataset.src = src;
+    v.muted = true; // 属性之外还要设 property，否则部分浏览器不让自动播
+    // 单格坏了就让它留空，不要把整条带拖崩
+    v.addEventListener('error', () => { tile.dataset.failed = 'true'; }, { once: true });
+    tile.append(v);
+    return tile;
   }
 
   /** 返回上一层的面包屑（详情页 → 所属栏目列表页） */
@@ -339,9 +416,30 @@
 
   function renderHero(p, host, { data, navKey, go } = {}) {
     host.innerHTML = '';
-    heroBackdrop(host);
 
+    /* 配了 backdrop 的项目：视频只铺在「标题 / 作者 / 按钮」那一条上，
+     * 到 TL;DR 为止就结束 —— teaser 和 highlights 留在正常背景上，
+     * 不然一段装饰视频会压在真正要看的 teaser 底下。
+     * 结构是 .hero__band（含视频层 + 自己的 .wrap）+ 后面另一个 .wrap。 */
+    const film = heroFilm(p.backdrop);
+    if (!film) heroBackdrop(host);
+
+    // 带视频时上半截单独成一个 band，否则两截共用一个 wrap（和原来一样）
+    const band = film ? el('div', { class: 'hero__band' }) : null;
+    if (band) {
+      band.append(film);
+      host.append(band);
+    }
     const wrap = el('div', { class: 'wrap' });
+    if (band) band.append(wrap); // band 里的内容压在视频上
+
+    // 条带的暂停按钮（只有滚动条带那种 backdrop 才需要，单图/单视频不用）。
+    // 图标和 aria-label 由 initHeroStrip() 按当前状态填。
+    if (band && $('.hero__strip', band)) {
+      band.append(el('button', {
+        class: 'hero__strip-toggle', type: 'button', 'aria-label': ui('stripPause'),
+      }));
+    }
 
     if (data && navKey && go) {
       const back = backLink(data, navKey, go);
@@ -350,7 +448,6 @@
 
     wrap.append(el('h1', { class: 'hero__title', id: 'project-title' },
       heroTitleHTML(p.title, p.titleBreakAfter)));
-    if (p.subtitle) wrap.append(el('p', { class: 'hero__subtitle' }, rich(t(p.subtitle))));
 
     // 会议信息：标题下方一行居中排版，两侧发丝线。没写 venue 就整块不出现。
     if (p.venue) {
@@ -368,22 +465,38 @@
     const links = renderLinkRow(p.links);
     if (links) wrap.append(links);
 
+    /* 下半截：TL;DR、teaser 和 highlights。带 band 时它们另起一个 .wrap，
+     * 落在视频条外面的正常背景上；不带 band 时沿用上面那个 wrap。 */
+    const below = band ? el('div', { class: 'wrap hero__below' }) : wrap;
+
+    // TL;DR：一句话说清这篇做了什么。放在按钮/视频条之后、teaser 之前 ——
+    // 标题下面挤着 venue/作者/按钮，这句话在那儿会被当成副标题读过去。
+    // 标签复用 .section__eyebrow，和 Abstract 上面那个 Overview 同一套。
+    if (p.subtitle) {
+      below.append(el('div', { class: 'tldr' },
+        `<div class="section__eyebrow">${esc(ui('tldr'))}</div>` +
+        `<p class="tldr__text">${rich(t(p.subtitle))}</p>`));
+    }
+
     // teaser
     if (p.teaser && p.teaser.src) {
       const fig = el('figure', { class: 'teaser', style: 'margin-inline:0' });
       const frame = el('div', { class: 'frame' });
       // teaser 是页面主内容，给控制条（读者要能暂停、拖进度条）。
-      // 仍然自动播 + 静音，否则浏览器会拦掉自动播放。
+      // 默认自动播 + 静音，否则浏览器会拦掉自动播放。数据可以覆盖：
+      // autoplay: false / loop: false 用在想让读者自己点开的宣传片上。
       frame.append(renderMedia(p.teaser.src, {
         poster: p.teaser.poster,
-        controls: true,
+        autoplay: p.teaser.autoplay ?? true,
+        loop: p.teaser.loop ?? true,
+        controls: p.teaser.controls ?? true,
         alt: t(p.teaser.alt) || `${plain(p.title)} teaser`,
       }));
       fig.append(frame);
       if (p.teaser.caption) {
         fig.append(el('figcaption', { class: 'caption' }, rich(t(p.teaser.caption))));
       }
-      wrap.append(fig);
+      below.append(fig);
     }
 
     // highlights
@@ -394,10 +507,12 @@
           `<div class="stat__value">${esc(t(h.value))}</div>` +
           `<div class="stat__label">${esc(t(h.label))}</div>`));
       });
-      wrap.append(stats);
+      below.append(stats);
     }
 
-    host.append(wrap);
+    // 不带 band 时 wrap 还没挂上去；带 band 时 wrap 已经在 band 里了
+    if (!band) host.append(wrap);
+    if (below !== wrap && below.childElementCount) host.append(below);
   }
 
   /* 说明性小图（示意图、掩码配置这类），居中、可控宽度。
@@ -414,7 +529,7 @@
     const frame = el('div', { class: 'frame' });
     frame.append(renderMedia(f.src, {
       poster: f.poster, alt: t(f.alt) || t(f.caption) || 'figure',
-      controls: isVideo(f.src) ? true : undefined,
+      controls: isVideo(t(f.src)) ? true : undefined,
     }));
     fig.append(frame);
     if (f.caption) fig.append(el('figcaption', { class: 'caption' }, rich(t(f.caption))));
@@ -621,8 +736,8 @@
     /* 轮播。给横屏视频用：一页上下叠 perPage 个（默认 2），左右按钮翻页。
      * 和 gallery 的取舍：gallery 是网格 + 点开进灯箱，缩略图小、适合竖图或多图速览；
      * 横屏视频挤在网格里每个都太小，所以这里一次只放两个、给足宽度。
-     * 注意这里的样例**不进灯箱**：视频带了控制条，再套一层「点击放大」的 button
-     * 会抢掉播放/拖进度条的点击。要放大用浏览器全屏按钮。 */
+     * 样例视频不进灯箱，也不给原生控制条：只留一个悬停时出现在正中央的
+     * 播放/暂停按钮（见 initCarousel），进度条、倍速、全屏都不要。 */
     carousel(s) {
       const box = el('div');
       if (s.body) box.append(el('div', { class: 'prose section__body' }, rich(t(s.body))));
@@ -637,7 +752,8 @@
       for (let i = 0; i < items.length; i += per) pages.push(items.slice(i, i + per));
 
       const car = el('div', {
-        class: 'carousel', dataset: { per: String(per) }, style: 'margin-top:1.5rem',
+        class: 'carousel' + (s.layout === 'centered' ? ' carousel--centered' : ''),
+        dataset: { per: String(per) }, style: 'margin-top:1.5rem',
         role: 'group', 'aria-roledescription': 'carousel',
         'aria-label': `${plain(s.title) || ui('samples')}`,
       });
@@ -666,6 +782,18 @@
           frame.append(renderMedia(it.src, {
             poster: it.poster, alt: cap || 'sample', controls: true, lazy: true,
           }));
+          // 样例视频不要原生控制条（进度条、倍速、全屏都去掉），只留播放/暂停。
+          // 原生 controls 没法只留一个按钮，所以换成自己画的：鼠标移到视频上时，
+          // 正中央浮出一个按钮。视频本身照常自动循环播放，按钮只是让读者能暂停。
+          // 按钮的接线在 initCarousel 里。
+          const v = $('video', frame);
+          if (v) {
+            v.removeAttribute('controls'); v.controls = false;
+            frame.append(el('button', {
+              class: 'csample__toggle', type: 'button',
+              'aria-label': ui('samplePause'),
+            }, icon('pause')));
+          }
           fig.append(frame);
           if (cap) fig.append(el('figcaption', { class: 'csample__caption' }, rich(cap)));
           pageEl.append(fig);
@@ -726,7 +854,7 @@
       const box = el('div');
       if (s.body) box.append(el('div', { class: 'prose section__body' }, rich(t(s.body))));
       const scroll = el('div', { class: 'table-scroll', style: 'margin-top:1.5rem' });
-      const table = el('table', { class: 'data' });
+      const table = el('table', { class: 'data' + (s.wrap ? ' data--wrap' : '') });
       table.append(el('thead', {},
         `<tr>${(s.columns || []).map((c) => `<th scope="col">${esc(t(c))}</th>`).join('')}</tr>`));
       const hl = new Set(s.highlightRows || []);
@@ -783,7 +911,7 @@
       id: s.id || `section-${index}`,
       dataset: { reveal: '' },
     });
-    const wrap = el('div', { class: 'wrap' });
+    const wrap = el('div', { class: 'wrap' + (s.layout === 'centered' ? ' wrap--carousel' : '') });
     if (s.title) {
       const head = el('div', { class: 'section__head' });
       if (s.eyebrow) head.append(el('div', { class: 'section__eyebrow' }, esc(t(s.eyebrow))));
@@ -959,13 +1087,15 @@
     toc.hidden = false;
     toc.innerHTML = '';
     const inner = el('div', { class: 'toc__inner' });
-    entries.forEach(({ id, label }) => {
+    entries.forEach(({ id, label, depth }) => {
       // data-label 给窄屏那套「圆点 + 悬停浮出标题」用：那时 a 自己是
       // color:transparent，标题只能走 ::after 的 content: attr(data-label)。
       // title 属性一并带上，键盘/读屏和原生 tooltip 都能拿到全名（列表里
       // 长标题是 ellipsis 截断的）。
+      // data-depth: 2 的项在目录里缩进（见数据里的 tocDepth）。
       inner.append(el('a', {
         href: `#${id}`, 'data-label': label, title: label,
+        dataset: { depth: String(depth || 1) },
       }, esc(label)));
     });
     toc.append(inner);
@@ -990,12 +1120,58 @@
       const next = $('.carousel__nav--next', car);
       let cur = 0;
 
-      // 把某一页的视频地址填上（只填一次，填过就跳过）
+      // 样例视频的播放/暂停按钮：正中央那个，只有悬停时才看得见。
+      // 状态全靠视频自己的 paused，按钮只负责切换和同步图标。
+      const syncToggle = (v) => {
+        const btn = v.parentElement?.querySelector('.csample__toggle');
+        if (!btn) return;
+        const playing = !v.paused;
+        btn.dataset.state = playing ? 'playing' : 'paused';
+        btn.innerHTML = icon(playing ? 'pause' : 'play');
+        btn.setAttribute('aria-label', ui(playing ? 'samplePause' : 'samplePlay'));
+      };
+      $$('.csample__toggle', car).forEach((btn) => {
+        const v = btn.parentElement.querySelector('video');
+        btn.addEventListener('click', () => {
+          if (!v.getAttribute('src')) return;   // 还没填 src（不在视野里）就别播
+          if (v.paused) {
+            delete v.dataset.userPaused;
+            const pr = v.play(); if (pr?.catch) pr.catch(() => {});
+          } else {
+            v.dataset.userPaused = 'true';
+            v.pause();
+          }
+        });
+        v.addEventListener('play', () => syncToggle(v));
+        v.addEventListener('pause', () => syncToggle(v));
+        syncToggle(v);
+      });
+
+      // 把某一页的视频地址填上。填过的页会打上标记，避免翻回来重复请求。
+      // 但请求失败不能算填过：本地的 python http.server（3.11 及更早）不响应
+      // Range，浏览器读元数据时会把连接掐掉，视频停在空画面。标记清掉之后，
+      // 翻回这一页（或还停在这一页）会再要一次。
+      const retry = (v) => {
+        if (v.dataset.retryArmed) return;
+        v.dataset.retryArmed = 'true';
+        v.addEventListener('error', () => {
+          const page = v.closest('.carousel__page');
+          v.removeAttribute('src');
+          v.load();
+          if (page) delete page.dataset.hydrated;
+          const n = Number(v.dataset.retries || 0);
+          if (n >= 2 || page !== pages[cur]) return;
+          v.dataset.retries = String(n + 1);
+          setTimeout(() => { if (page === pages[cur]) hydrate(cur); }, 500);
+        });
+      };
       const hydrate = (pi) => {
         const page = pages[pi];
         if (!page || page.dataset.hydrated === 'true') return;
         page.dataset.hydrated = 'true';
         $$('video[data-src]', page).forEach((v) => {
+          retry(v);
+          if (v.getAttribute('src')) return;
           // 用 setAttribute 而不是 v.src = ...：后者赋的是 property，
           // 读回来会被解析成绝对地址，属性选择器和 getAttribute 也不好判断是否已填。
           v.setAttribute('src', v.dataset.src);
@@ -1022,14 +1198,12 @@
           if (on) page.removeAttribute('inert'); else page.setAttribute('inert', '');
           $$('video', page).forEach((v) => {
             if (on) {
-              // 只自动播原本标了 autoplay 的（reduce-motion 下不会有这个标记）。
-              // 还没填 src 的先不管：hydrate 之后的那次 show() 会来播。
-              if (v.dataset.autoplay === 'true' && v.getAttribute('src')) {
-                const pr = v.play(); if (pr?.catch) pr.catch(() => {});
-              }
-            } else if (!v.paused) {
-              v.pause();
-            }
+              // 当前页自动播。lazy 视频的 autoplay 属性是空的（渲染时还没有 src），
+              // 所以这里要显式 play()。用户主动暂停过的不再强行起播，尊重他的选择。
+              if (v.dataset.userPaused === 'true' || !v.paused) return;
+              const pr = v.play();
+              if (pr?.catch) pr.catch(() => {});
+            } else if (!v.paused) v.pause();
           });
         });
         dots.forEach((d, i) => {
@@ -1052,9 +1226,9 @@
         d.addEventListener('click', () => show(Number(d.dataset.page)));
       });
 
-      // 键盘左右键翻页。焦点在视频控制条上时不抢 —— 那时左右键是快退/快进。
+      // 键盘左右键翻页。焦点在播放按钮上时也要能翻：
+      // 样例视频没有原生控制条了，左右键不再是快退/快进。
       car.addEventListener('keydown', (e) => {
-        if (e.target.tagName === 'VIDEO') return;
         if (e.key === 'ArrowLeft') { e.preventDefault(); show(cur - 1); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); show(cur + 1); }
       });
@@ -1440,6 +1614,198 @@
     items.forEach((i) => io.observe(i));
   }
 
+  /* 目录的显隐：配了视频背景条的页面，滑过那条之后才让目录浮出来 ——
+   * 条上压着标题和按钮，右侧再浮一列章节名会打架。
+   * 没有 band 的页面（论文页、没配 backdrop 的项目）一直显示，和原来一样。
+   *
+   * 用 IntersectionObserver 盯 band 的下边界，不自己算 scrollY：
+   * 条高是 min(760px, 100vh)，跟视口走，算出来的阈值会在 resize 后失效。 */
+  /* hero 背景条带：两行视频横向匀速滚动。
+   *
+   * 关键取舍：
+   * - 位移用 rAF 按「每秒多少 px」算，不用 CSS animation —— 要能随时暂停、
+   *   并且在 resize 改了格宽之后接着原进度走，不是跳回起点。
+   * - 一格滚出左边就 append 到队尾（offset 减掉一个 stride），所以无论屏多宽
+   *   都不会露出空边，也不用把素材复制好几遍。
+   * - **视频是懒加载的**：只有滚到视野附近的格子才填 src。30 个 clip 合计
+   *   380MB，全量预载等于把首屏炸掉。离开视野就 pause，不然十几路解码一起跑。
+   * - 整条带在视口外、切到别的标签页、或用户按了暂停时，rAF 和所有视频一起停。
+   * - prefers-reduced-motion 默认就是暂停态（用户可以手动播）。 */
+  let heroStripStop = null;
+  function initHeroStrip() {
+    if (heroStripStop) { heroStripStop(); heroStripStop = null; }
+    const strip = $('#hero .hero__strip');
+    if (!strip) return;
+
+    const band = strip.closest('.hero__band') || strip.parentElement;
+    const reduce = window.matchMedia('(prefers-reduced-motion: reduce)');
+    const SPEED = 42; // px/s。刻意慢 —— 这是背景，不该抢注意力
+    const rows = $$('.hero__strip-track', strip).map((track) => ({
+      track,
+      row: track.parentElement,
+      back: track.dataset.dir === 'back',
+      count: track.children.length,
+      offset: 0,
+      stride: 0,
+    }));
+    if (!rows.length) return;
+
+    let paused = reduce.matches;
+    let visible = true;
+    let raf = 0;
+    let last = 0;
+    let mediaAt = 0;
+
+    const running = () => !paused && visible && !document.hidden;
+
+    /* 懒加载 + 播放门控。每 ~150ms 跑一次，不必每帧都查。 */
+    function updateMedia() {
+      const vw = strip.clientWidth;
+      rows.forEach((st) => {
+        const { stride } = st;
+        if (!stride) return;
+        // track 自己的位移。反向行的 transform 是 offset - stride，
+        // 算可见范围要用同一个值，否则判定会整体偏一格。
+        const shift = st.back ? st.offset - stride : -st.offset;
+        [...st.track.children].forEach((tile, i) => {
+          const v = tile.firstElementChild;
+          if (!v || tile.dataset.failed) return;
+          // 这一格左边缘相对条带视口的位置
+          const left = i * stride + shift;
+          const onScreen = left < vw && left + stride > 0;
+          const near = left < vw + stride && left + stride > -stride;
+          if (near && !v.getAttribute('src')) {
+            v.preload = 'metadata';
+            v.src = v.dataset.src;
+          }
+          if (!running() || !onScreen) { if (!v.paused) v.pause(); return; }
+          if (v.paused && v.getAttribute('src')) {
+            v.play().catch((err) => {
+              // 浏览器拦了自动播（通常是没静音成功）：整条停掉，别反复重试
+              if (err && err.name === 'NotAllowedError') { paused = true; sync(); }
+            });
+          }
+        });
+      });
+    }
+
+    function step(now) {
+      if (!running()) { raf = 0; return; }
+      const dt = last ? Math.min((now - last) / 1000, 0.1) : 0;
+      last = now;
+      rows.forEach((st) => {
+        if (!st.stride) return;
+        st.offset += dt * SPEED;
+        /* 滚过一格就回收一格，offset 退回一个 stride，视觉上接得上。
+         * 两个方向的回收端是相反的，搞反了就会看到「画面播着忽然换一段」：
+         *   正向（往左跑）滚出左边的是首格 → append 到队尾
+         *   反向（往右跑）滚出右边的是末格 → prepend 到队首
+         * 回收永远发生在视野外，所以每一格始终在循环播自己那段视频。 */
+        while (st.offset >= st.stride) {
+          st.offset -= st.stride;
+          if (st.back) st.track.prepend(st.track.lastElementChild);
+          else st.track.append(st.track.firstElementChild);
+        }
+        const x = st.back ? st.offset - st.stride : -st.offset;
+        st.track.style.transform = `translate3d(${x}px, 0, 0)`;
+      });
+      if (now - mediaAt > 150) { mediaAt = now; updateMedia(); }
+      raf = requestAnimationFrame(step);
+    }
+
+    function sync() {
+      strip.dataset.paused = String(paused);
+      if (running()) {
+        if (!raf) { last = 0; raf = requestAnimationFrame(step); }
+      } else if (raf) {
+        cancelAnimationFrame(raf); raf = 0; last = 0;
+      }
+      updateMedia();
+    }
+
+    /* 格宽跟着行高走（保持 832:480），并补足格数把整行铺满 —— 超宽屏上
+     * 15 格可能不够一屏，不补就会露空边。 */
+    function measure() {
+      rows.forEach((st) => {
+        const h = st.row.clientHeight;
+        if (!h) return;
+        const w = Math.min(832, h * 832 / 480);
+        st.track.style.setProperty('--tile-w', `${w}px`);
+        const gap = parseFloat(getComputedStyle(st.track).gap) || 0;
+        const stride = w + gap;
+        // resize 时按比例保留进度，不要跳回起点
+        if (st.stride) st.offset = st.offset / st.stride * stride;
+        st.stride = stride;
+        // 不够铺满就整轮复制（保持原顺序，不然会出现相邻重复）
+        const need = strip.clientWidth + stride * 2;
+        while (st.track.children.length * stride < need) {
+          const base = [...st.track.children].slice(0, st.count);
+          base.forEach((tile) => {
+            const src = tile.firstElementChild?.dataset.src;
+            if (src) st.track.append(heroTile(src));
+          });
+          if (!st.count) break;
+        }
+        const x = st.back ? st.offset - st.stride : -st.offset;
+        st.track.style.transform = `translate3d(${x}px, 0, 0)`;
+      });
+      updateMedia();
+    }
+
+    const ro = 'ResizeObserver' in window ? new ResizeObserver(measure) : null;
+    if (ro) ro.observe(strip);
+    const io = 'IntersectionObserver' in window
+      ? new IntersectionObserver(([e]) => { visible = e.isIntersecting; sync(); })
+      : null;
+    if (io) io.observe(band);
+
+    const onVis = () => sync();
+    const onReduce = (e) => { paused = e.matches; sync(); };
+    document.addEventListener('visibilitychange', onVis);
+    reduce.addEventListener('change', onReduce);
+
+    // 暂停按钮：动效和流量都该能被用户掐掉
+    const btn = $('#hero .hero__strip-toggle');
+    const refreshBtn = () => {
+      if (!btn) return;
+      btn.innerHTML = paused ? ICONS.play : ICONS.pause;
+      btn.setAttribute('aria-label', ui(paused ? 'stripPlay' : 'stripPause'));
+    };
+    const onToggle = () => { paused = !paused; refreshBtn(); sync(); };
+    if (btn) btn.addEventListener('click', onToggle);
+    refreshBtn();
+
+    measure();
+    sync();
+
+    heroStripStop = () => {
+      if (raf) cancelAnimationFrame(raf);
+      ro?.disconnect(); io?.disconnect();
+      document.removeEventListener('visibilitychange', onVis);
+      reduce.removeEventListener('change', onReduce);
+      btn?.removeEventListener('click', onToggle);
+      // 把视频都停掉并卸掉 src，切走之后不该还有解码在跑
+      $$('video', strip).forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); });
+    };
+  }
+
+  let tocGateObserver = null;
+  function initTocGate() {
+    if (tocGateObserver) { tocGateObserver.disconnect(); tocGateObserver = null; }
+    const toc = $('#toc');
+    const band = $('#hero .hero__band');
+    if (!band || !('IntersectionObserver' in window)) {
+      delete toc.dataset.gated;
+      return;
+    }
+    toc.dataset.gated = 'hidden';
+    tocGateObserver = new IntersectionObserver(([e]) => {
+      // band 完全滑出视口上方 = 读者已经进到正文，这时才放出目录
+      toc.dataset.gated = e.isIntersecting ? 'hidden' : 'shown';
+    }, { threshold: 0 });
+    tocGateObserver.observe(band);
+  }
+
   /** TOC 高亮当前章节 */
   let tocObserver = null;
   function initTocHighlight() {
@@ -1651,7 +2017,7 @@
       title = `${strip(item.title)}${team ? ` · ${team}` : ''}`;
       desc = strip(item.abstract || item.subtitle).slice(0, 200);
       canonical = urlFor.detail(item.id);
-      if (item.teaser?.src && !isVideo(item.teaser.src)) image = item.teaser.src;
+      if (item.teaser?.src && !isVideo(t(item.teaser.src))) image = t(item.teaser.src);
       if (Array.isArray(item.keywords) && item.keywords.length) {
         set('meta[name="keywords"]', 'content', item.keywords.map(t).join(', '));
       }
@@ -1774,6 +2140,9 @@
     initCopy(main);
     initReveal(document);
     initTocHighlight();
+    initTocGate();
+    initHeroStrip();
+    fitCardSummaries(main);
 
     if (scrollTop) window.scrollTo({ top: 0, behavior: 'auto' });
   }
@@ -1791,7 +2160,9 @@
       const node = renderSection(s, i + (abs ? 1 : 0));
       if (!node) return;
       main.append(node);
-      if (s.title) tocEntries.push({ id: node.id, label: t(s.title) });
+      // tocDepth: 2 让这一节在目录里缩进成子项（数据里标，渲染层不猜层级）。
+      // 正文里的章节标题不受影响 —— 只改目录的呈现。
+      if (s.title) tocEntries.push({ id: node.id, label: t(s.title), depth: s.tocDepth || 1 });
     });
 
     const bib = renderBibtex(p);
@@ -1802,6 +2173,33 @@
     initSwitcher(data, route.navKey, p, (id) => {
       const found = findItem(data, id);
       if (found) go({ view: 'detail', ...found });
+    });
+  }
+
+  /* 首页 / 列表的卡片简介默认截三行。标题排到三行时把简介收到两行，
+   * 让同一行里的卡片高度更齐 —— 标题长短不一是卡片高矮不齐的主要来源。
+   * 只看实际排出来的行数，不靠字符数猜：中英文、强调词和容器宽度都会变。 */
+  let cardSummaryFitBound = false;
+  function fitCardSummaries(root = document) {
+    const titles = $$('.item__title', root);
+    if (!titles.length) return;
+    const apply = () => {
+      titles.forEach((title) => {
+        const sub = title.parentElement?.querySelector('.item__sub');
+        if (!sub) return;
+        const lh = parseFloat(getComputedStyle(title).lineHeight);
+        if (!lh) return;
+        sub.classList.toggle('item__sub--tight', title.getBoundingClientRect().height > lh * 2.5);
+      });
+    };
+    apply();
+    if (cardSummaryFitBound) return;
+    cardSummaryFitBound = true;
+    // 窄屏标题会重新折行，阈值要跟着重算
+    let timer = 0;
+    window.addEventListener('resize', () => {
+      clearTimeout(timer);
+      timer = setTimeout(() => fitCardSummaries(), 150);
     });
   }
 

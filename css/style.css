@@ -40,13 +40,14 @@
   --border-strong: var(--ink-300);
   --hairline:      color-mix(in srgb, var(--ink-300) 40%, transparent);
 
-  /* ---- 排版 ---- */
-  --font-sans: "Inter var", "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI",
+  /* ---- 排版 ----
+   * Google Sans Flex 是可变字体，正文和标题共用，
+   * 层次靠字重和光学尺寸，不再单独上衬线。中文它不覆盖，落到后面的
+   * PingFang / 雅黑。离线或被墙时整条回退到系统字体栈。 */
+  --font-sans: "Google Sans Flex", -apple-system, BlinkMacSystemFont, "Segoe UI",
                "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei",
                Roboto, Helvetica, Arial, sans-serif;
-  --font-serif: "Source Serif 4", "Iowan Old Style", Georgia,
-                "Songti SC", "Noto Serif CJK SC", serif;
-  --font-mono: "JetBrains Mono", ui-monospace, SFMono-Regular, Menlo,
+  --font-mono: "Google Sans Code", ui-monospace, SFMono-Regular, Menlo,
                Consolas, "Liberation Mono", monospace;
 
   /* 流式字号：clamp(最小, 基准+视口, 最大) */
@@ -56,7 +57,9 @@
   --step-1:  clamp(1.18rem, 1.09rem + 0.40vw, 1.42rem);
   --step-2:  clamp(1.50rem, 1.30rem + 0.90vw, 2.05rem);
   --step-3:  clamp(1.95rem, 1.55rem + 1.70vw, 2.90rem);
-  --step-4:  clamp(2.35rem, 1.60rem + 3.40vw, 4.35rem);
+  /* 大标题封顶 3.375rem = 54px，配字重 500。分量靠字号顶到这个尺寸，
+     不是靠加粗，也不是靠更大的展示字号。 */
+  --step-4:  clamp(2.15rem, 1.35rem + 2.6vw, 3.375rem);
 
   /* ---- 间距 / 尺寸 ---- */
   --space-1: .25rem;  --space-2: .5rem;   --space-3: .75rem;
@@ -67,8 +70,8 @@
   --page: 1180px;
   --page-wide: 1400px;
   --header-h: 62px;
-  /* 右侧竖排章节导航（.toc）的列宽。两处用到：浮层自身的宽度，
-     以及 1500px+ 时给正文让位的偏移量算式。 */
+  /* 右侧竖排章节导航（.toc）的列宽。浮层自身的宽度，
+     以及视口放不下它时正文让位的偏移量都用它。 */
   --toc-w: 12.5rem;
 
   --radius-xs: 5px;
@@ -139,18 +142,26 @@ body {
   background: var(--bg);
   color: var(--text);
   font-family: var(--font-sans);
+  /* 正文锁在小光学尺寸。不写 wght 轴：font-variation-settings 里一旦
+     带了 wght，就会盖掉全站的 font-weight，加粗和各处字重全部失效。 */
+  font-optical-sizing: none;
+  font-variation-settings: "opsz" 18;
+  font-weight: 430;
   font-size: var(--step-0);
   line-height: 1.66;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: optimizeLegibility;
-  font-feature-settings: "kern" 1, "liga" 1, "calt" 1, "cv11" 1, "ss01" 1;
   overflow-x: hidden;
 }
 img, svg, video, canvas { max-width: 100%; height: auto; display: block; }
 h1, h2, h3, h4 {
   margin: 0; line-height: 1.16;
-  font-weight: 650; letter-spacing: -0.022em;
+  /* Google Sans Flex 大字号加粗发虚，标题走 500：这是它在大光学尺寸下
+     还能保持笔画干净的上限，再高就开始糊。层次靠字号，不靠字重。 */
+  font-weight: 500; letter-spacing: -0.02em;
+  /* 大字号走大光学尺寸，字形更舒展。只锁 opsz，字重仍由 font-weight 决定。 */
+  font-variation-settings: "opsz" 72;
   color: var(--text-strong); text-wrap: balance;
 }
 p { margin: 0 0 1em; text-wrap: pretty; }
@@ -197,6 +208,13 @@ table { border-collapse: collapse; }
   padding-inline: clamp(1.15rem, 4.5vw, 2.25rem);
 }
 .wrap--wide { max-width: var(--page-wide); }
+/* 居中轮播的 section 要更宽：视频本身 960px，两侧还各有一个 40px 的翻页按钮。
+   只放宽这一个 section，正文和标题不跟着变 —— 它们各自有自己的限宽。
+   选择器要比「目录可见时收窄正文」那条更具体，否则会被它压回 976px。
+   同时也要给目录让位：1180px 写死的话，1440 以下的视口里轮播会盖住右侧目录。 */
+body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
+  max-width: min(1180px, calc(100vw - 2 * (var(--toc-w) + 2rem)));
+}
 .measure, .prose { max-width: var(--measure); }
 .prose { color: var(--text-muted); }
 .prose strong, .prose b { color: var(--text); font-weight: 620; }
@@ -392,6 +410,127 @@ table { border-collapse: collapse; }
   mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.5) 45%, transparent 82%);
   -webkit-mask-image: linear-gradient(to bottom, #000 0%, rgba(0,0,0,.5) 45%, transparent 82%);
 }
+/* ---- 视频背景条（数据里配了 backdrop）--------------------------------
+ * 标题、作者、按钮压在一段视频上。
+ * 视频条到按钮行为止就结束 —— TL;DR、teaser 和 highlights 在条外面的
+ * 正常背景上，不然装饰视频会压在真正要看的内容底下。
+ * 和三层静态背景互斥：配了 backdrop 就不画网格和晕光，否则会透在画面上。
+ * 这条自带深色画面，所以里面的文字一律写死浅色，不跟随深浅主题。 */
+.hero:has(.hero__band) { padding-top: 0; }
+.hero__band {
+  position: relative; isolation: isolate;
+  /* 760px：够放下标题 + 作者 + 按钮，又不至于把正文推到首屏外。
+     小屏按视口收，否则手机上要滑很久才见正文。 */
+  min-height: min(760px, 100vh);
+  display: flex; flex-direction: column; justify-content: center;
+  padding: clamp(3.5rem, 8vw, 6rem) 0 clamp(3rem, 6vw, 4.5rem);
+  /* header 是半透明吸顶的，视频条顶到它下面会更像一整块 */
+  margin-top: 0;
+}
+.hero__film {
+  position: absolute; inset: 0; z-index: -1; overflow: hidden;
+  /* 条带本身的底色。素材是 832×480、按 contain 放，边上会露出这个底 */
+  background: #0d1017;
+}
+/* backdrop.src 那种单个铺满的素材 */
+.hero__film > img, .hero__film > video {
+  width: 100%; height: 100%; object-fit: cover;
+}
+
+/* ---- 滚动条带（backdrop.rows）----------------------------------------
+ * 两行等高，各自横向匀速滚动、方向相反。位移由 JS 写在 track 的 transform 上
+ * （见 initHeroStrip），CSS 只管布局和尺寸。 */
+.hero__strip {
+  position: absolute; inset: 0;
+  display: grid; grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 8px; padding: 8px 0;
+  pointer-events: none;
+}
+.hero__strip-row { min-height: 0; overflow: hidden; }
+.hero__strip-track {
+  display: flex; gap: 8px; width: max-content; height: 100%;
+  align-items: center;
+  will-change: transform;
+}
+.hero__tile {
+  position: relative; overflow: hidden;
+  /* --tile-w 由 JS 按行高算出来（保持 832:480，且不超过原生宽度） */
+  flex: 0 0 var(--tile-w, 832px); width: var(--tile-w, 832px);
+  aspect-ratio: 832 / 480;
+  border-radius: 10px; background: #141820;
+}
+/* contain 而不是 cover：这些是生成结果，裁掉边缘就看不出画面在干什么了 */
+.hero__tile > video { width: 100%; height: 100%; object-fit: contain; }
+.hero__tile[data-failed="true"] > video { visibility: hidden; }
+
+/* 暂停按钮：压在条带右下角。动效和流量都该能被用户掐掉。 */
+.hero__strip-toggle {
+  position: absolute; right: clamp(1rem, 3vw, 2rem); bottom: clamp(1rem, 3vw, 1.75rem);
+  z-index: 2;
+  display: grid; place-items: center;
+  width: 38px; height: 38px; padding: 0;
+  color: #fff; background: rgba(12, 18, 26, .5);
+  border: 1px solid rgba(255, 255, 255, .28); border-radius: 50%;
+  backdrop-filter: blur(8px); cursor: pointer;
+  transition: background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.hero__strip-toggle:hover {
+  background: rgba(12, 18, 26, .8); border-color: rgba(255, 255, 255, .6);
+}
+.hero__strip-toggle svg { width: 14px; height: 14px; }
+/* 蒙版：压暗背景，让文字在任意亮度的画面上都读得清。
+ * 两道渐变叠起来：竖向那道管上下边缘，横向那道在文字这一侧稍重一点。
+ * 不用纯色平铺 —— 那样画面会整体发灰。
+ * 整体压得克制：素材本身是要给人看的，压太狠就只剩一片灰底。
+ * 文字那一侧够读就行，右半边基本放开。 */
+.hero__film-shade {
+  position: absolute; inset: 0;
+  background:
+    linear-gradient(to bottom,
+      rgba(8, 10, 16, .42) 0%,
+      rgba(8, 10, 16, .26) 45%,
+      rgba(8, 10, 16, .5) 100%),
+    linear-gradient(100deg,
+      rgba(8, 10, 16, .4) 0%,
+      rgba(8, 10, 16, .16) 58%,
+      rgba(8, 10, 16, 0) 100%);
+}
+/* 蒙版调淡之后，标题/作者这些文字要自己扛住花背景：加一点很轻的
+   文字阴影，比继续压暗整块画面划算。 */
+.hero__band .hero__title,
+.hero__band .authors,
+.hero__band .affils,
+.hero__band .author-notes,
+.hero__band .hero__venue,
+.hero__band .hero__back {
+  text-shadow: 0 1px 10px rgba(6, 9, 15, .55), 0 1px 2px rgba(6, 9, 15, .4);
+}
+/* teaser / highlights 落在条外面，给一点上边距把两块分开 */
+.hero__below { padding-top: var(--space-8); }
+
+/* 压在视频上的文字一律浅色（视频本身不跟随主题，所以这里写死） */
+.hero__band .hero__title,
+.hero__band .tldr__text { color: #f6f7fb; }
+.hero__band .hero__title em { color: #b9aeff; }
+.hero__band .authors,
+.hero__band .authors a,
+.hero__band .authors strong { color: #e8eaf4; }
+.hero__band .affils,
+.hero__band .author-notes,
+.hero__band .hero__venue { color: #c3c8da; }
+.hero__band .section__eyebrow { color: #c9c2ff; }
+.hero__band .hero__back { color: #d6dae8; }
+.hero__band .hero__back:hover { color: #fff; }
+/* 按钮：实心那颗保持品牌色，描边那些改成浅色描边 */
+.hero__band .btn--ghost {
+  color: #f2f4fa; border-color: rgba(255, 255, 255, .42);
+  background: rgba(255, 255, 255, .06);
+}
+.hero__band .btn--ghost:hover {
+  color: #fff; border-color: rgba(255, 255, 255, .8);
+  background: rgba(255, 255, 255, .14);
+}
+
 /* 噪点：给渐变加胶片颗粒，防止大面积色带 */
 .hero__noise {
   position: absolute; inset: 0; z-index: -1; pointer-events: none;
@@ -404,14 +543,16 @@ table { border-collapse: collapse; }
 .hero__title {
   font-size: var(--step-4); text-align: center;
   max-width: 26ch; margin-inline: auto;
-  letter-spacing: -0.035em; font-weight: 700; line-height: 1.05;
+  /* 字重 500、字距只收一点点（-0.006em）。收到 -0.027em 那种展示级字距
+     在 54px 这个尺寸上会把字挤扁。 */
+  letter-spacing: -0.006em; font-weight: 500; line-height: 1.06;
 }
-/* 论文详情页的标题（不是首页主张、也不是栏目名）放宽一些：
- * 26ch 是给短标题定的，长标题（比如补了 "Reconstruction" 之后的 Mira-Scene）
- * 会被挤成三行。放到 36ch 正好两行，字号也跟着给一档更缓的 clamp。 */
+/* 论文详情页的标题（不是首页主张、也不是栏目名）。
+ * 论文标题长，26ch 会挤成三行，放到 22em 正好两行。
+ * 字号跟首页同一档（封顶 54px），不再单独放更大。 */
 .hero__title:not(.hero__title--home):not(.hero__title--list) {
-  max-width: 36ch;
-  font-size: clamp(2.15rem, 1.55rem + 2.4vw, 3.75rem);
+  max-width: 22em;
+  font-size: var(--step-4);
 }
 /* 标题里 *星号* 包住的词：单一主色，不用渐变。
  * 渐变字在学术标题上显轻浮，纯色一样能强调。 */
@@ -421,15 +562,12 @@ table { border-collapse: collapse; }
 .hero-title-break { display: block; }
 @media (max-width: 720px) { .hero-title-break { display: none; } }
 
-/* 首页主张：左对齐、更宽，读起来像一句话而不像论文标题 */
-/* 首页主张：左对齐、更宽，读起来像一句话而不像论文标题。
- * 27ch 是量出来的：现在这句话（58 字符）在 --step-4 下最平衡的两行切分是
- * "We build generative models" / "for interaction and simulation."，
- * 较长那行要 25.8ch，所以 27 留一点余量。22ch 会排成三行。
- * text-wrap: balance 让浏览器自己找那个切分点，别手写 <br>。
- * 换文案后记得重新量 —— 这个值是跟着字数走的。 */
+/* 首页主张：左对齐，读起来像一句话而不像论文标题。
+ * 16.5em 是按 Google Sans Flex 500 量的：54px 下「We build generative
+ * models for」约 14em，「interaction and simulation.」约 12.1em，
+ * 两行里较长的那行留一点余量。再窄就会掉成三行。 */
 .hero__title--home {
-  text-align: left; max-width: 27ch; margin-inline: 0;
+  text-align: left; max-width: 16.5em; margin-inline: 0;
   font-size: var(--step-4);
   text-wrap: balance;
 }
@@ -447,6 +585,21 @@ table { border-collapse: collapse; }
   font-size: var(--step-1); color: var(--text-muted); text-align: center;
   max-width: 56ch; margin: var(--space-5) auto 0;
   font-weight: 400; line-height: 1.55; letter-spacing: -0.008em;
+}
+
+/* ---- TL;DR ------------------------------------------------------------
+ * 详情页 hero 里，链接行和 teaser 之间的一句话总结。整块居中，
+ * 标签直接复用 .section__eyebrow（和 Abstract 上面的 Overview 一致）。
+ * 正文用 --text（不是 --text-muted）：这句话是要被读的，不是补充说明。 */
+/* 行宽和 .abstract 一样 74ch（都在继承的 --step-0 下算 ch，所以是真对齐的），
+   标签和正文都居中。 */
+.tldr {
+  max-width: 74ch; margin: var(--space-6) auto 0;
+  text-align: center;
+}
+.tldr__text {
+  margin: 0; color: var(--text);
+  font-size: var(--step-1); line-height: 1.65; letter-spacing: -0.008em;
 }
 
 /* 返回栏目的面包屑，在详情页标题上方 */
@@ -501,11 +654,11 @@ table { border-collapse: collapse; }
   margin: var(--space-6) auto 0; text-align: center;
   font-size: 1.04rem; max-width: 64ch; line-height: 2;
 }
-.authors a { color: var(--text); font-weight: 560; }
+.authors a { color: var(--text); font-weight: 430; }
 .authors a:hover { color: var(--brand); }
-/* 重点作者（数据里 bold: true）。写死 710 而不是靠 <strong> 的 bolder ——
- * 那是相对父级算的，链接里的父级是 560、纯文本是 400，同一行会粗细不一。 */
-.authors strong { font-weight: 710; color: var(--text-strong); }
+/* 重点作者（数据里 bold: true）不再加粗：这套字体在这个字号下加粗发虚，
+ * 只靠颜色把名字从一行里提出来。 */
+.authors strong { font-weight: 450; color: var(--text-strong); }
 .authors sup { color: var(--brand); font-size: .7em; padding-left: 1px; font-weight: 600; }
 .affils {
   margin: var(--space-3) auto 0; text-align: center;
@@ -568,10 +721,41 @@ table { border-collapse: collapse; }
  * 让内容自己说话，画框退到背景里。 */
 .teaser { margin: var(--space-8) 0 0; }
 .frame {
+  position: relative;
   border: 1px solid var(--border); border-radius: var(--radius);
   background: var(--bg-alt); overflow: hidden;
 }
 .frame > img, .frame > video { width: 100%; display: block; }
+/* 视频在元数据回来之前没有固有高度。全局 height:auto 会把它收成一条线，
+   轮播的 overflow:hidden 再把整页裁掉。比例跟轮播成片一致（1280×704），
+   写 16:9 会在画面上下留出一条空。 */
+.frame > video:not([poster]) { aspect-ratio: 1280 / 704; height: auto; object-fit: cover; }
+
+/* 轮播样例的播放/暂停。原生控制条没法只留一个按钮，所以换成自己画的：
+   鼠标移到视频上（或键盘聚焦）时，正中央浮出一个圆形按钮。
+   外观直接沿用顶部背景条带的 .hero__strip-toggle，整体放大约 1.5 倍
+   （38px 圆 / 14px 图标 → 57px / 21px），免得同一个页面上两套播放按钮长得不一样。
+   平时不显示 —— 视频自己在循环播放，按钮只在读者想停下来看时才出现。 */
+.csample__toggle {
+  position: absolute; top: 50%; left: 50%;
+  transform: translate(-50%, -50%);
+  width: 57px; height: 57px; border-radius: 50%;
+  display: grid; place-items: center;
+  color: #fff; background: rgba(12, 18, 26, .5);
+  border: 1px solid rgba(255, 255, 255, .28);
+  backdrop-filter: blur(8px); cursor: pointer; padding: 0;
+  opacity: 0;
+  transition: opacity var(--dur) var(--ease),
+    background var(--dur) var(--ease), border-color var(--dur) var(--ease);
+}
+.csample__toggle svg { width: 21px; height: 21px; }
+.frame:hover > .csample__toggle,
+.csample__toggle:focus-visible { opacity: 1; }
+.csample__toggle:hover {
+  background: rgba(12, 18, 26, .8); border-color: rgba(255, 255, 255, .6);
+}
+/* 播放图标视觉重心偏右，往左挪一点才看起来在正中 */
+.csample__toggle[data-state="paused"] svg { margin-left: 2px; }
 
 /* 收窄的插图。示意图、对比图这类本来就不大的素材，铺满 1180px 会被放糊，
  * 而且和旁边满宽的视频抢注意力。给 section 里的 figure 挂
@@ -598,7 +782,7 @@ table { border-collapse: collapse; }
 /* 竖分隔线用 box-shadow 画，避免最后一项右侧多出一条 */
 .stat + .stat { box-shadow: inset 1px 0 0 var(--border); }
 .stat__value {
-  font-size: var(--step-3); font-weight: 660; line-height: 1.05;
+  font-size: var(--step-2); font-weight: 500; line-height: 1.05;
   letter-spacing: -0.04em; font-variant-numeric: tabular-nums;
   color: var(--text-strong);
 }
@@ -634,11 +818,13 @@ table { border-collapse: collapse; }
 .section__body { margin-top: var(--space-4); color: var(--text-muted); max-width: none; }
 .section__body a { font-weight: 560; }
 
-/* 摘要：衬线体 + 收窄行宽，居中标题 */
+/* 摘要：和正文同一套无衬线，只靠字号和行距拉开。收窄行宽、标题居中。 */
 .abstract { max-width: 74ch; margin-inline: auto; }
 .abstract .section__head { text-align: center; }
 .abstract__text {
-  font-family: var(--font-serif); font-size: 1.14rem; line-height: 1.82;
+  font-size: 1.14rem; line-height: 1.82; font-weight: 400;
+  /* 比正文略大，光学尺寸跟着抬一档，避免大字号还用正文那套紧凑字形 */
+  font-variation-settings: "opsz" 28;
   color: var(--ink-700); text-align: justify; text-justify: inter-word; hyphens: auto;
 }
 @media (prefers-color-scheme: dark) {
@@ -695,6 +881,8 @@ table { border-collapse: collapse; }
   color: var(--text-muted); font-size: .9rem; line-height: 1.55; margin: 0;
   display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden;
 }
+/* 标题排到三行时由 fitCardSummaries() 挂上，简介收到两行，卡片高度更齐 */
+.item__sub--tight { -webkit-line-clamp: 2; }
 .item__more {
   display: inline-flex; align-items: center; gap: .3rem;
   margin-top: var(--space-4); padding-top: var(--space-3);
@@ -712,8 +900,8 @@ table { border-collapse: collapse; }
  *
  * 为什么是 fixed 而不是 sticky：sticky 要待在某个滚动容器里，会被 .section
  * 的 overflow 和分隔线截断；fixed 脱离文档流，纵向居中后随页面滚动始终在手边。
- * 代价是它会盖住正文右侧 —— 所以下面用 --toc-w 在 1500px 以上给正文让位，
- * 更窄的屏幕直接收成一列圆点（见后面那段 media query）。 */
+ * 代价是它会盖住正文右侧 —— 所以 1100px 以上都用 --toc-w 给正文让位，
+ * 再窄就收成一列圆点（见后面那段 media query）。 */
 .toc {
   position: fixed; z-index: 90;
   top: 50%; right: clamp(.75rem, 2.2vw, 2rem);
@@ -733,6 +921,17 @@ table { border-collapse: collapse; }
   width: var(--toc-w, 12.5rem);
 }
 .toc__inner::-webkit-scrollbar { display: none; }
+/* 有视频背景条的页面：滑过那条之后目录才浮出来（见 app.js 的 initTocGate）。
+   用 opacity + visibility 而不是 display:none —— 要能淡入，而且 display 变化
+   会让 IntersectionObserver 失去观测目标。 */
+.toc[data-gated="hidden"] {
+  opacity: 0; visibility: hidden; pointer-events: none;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+}
+.toc[data-gated="shown"] {
+  opacity: 1; visibility: visible;
+  transition: opacity var(--dur) var(--ease), visibility var(--dur) var(--ease);
+}
 .toc a {
   display: block; padding: .3rem 0 .3rem .7rem;
   font-size: var(--step--2); font-weight: 520; line-height: 1.4;
@@ -747,16 +946,37 @@ table { border-collapse: collapse; }
   color: var(--text-strong); border-left-color: var(--text-muted);
   text-decoration: none; background: none;
 }
+/* 子项（数据里 tocDepth: 2）：往右缩进一档、字号再小一点。
+   缩进做在 padding 上而不是 margin —— 导轨那条竖线要保持连续，
+   margin 会把它断开成两段。 */
+.toc a[data-depth="2"] {
+  padding-left: 1.5rem;
+  font-size: calc(var(--step--2) * .94);
+  color: color-mix(in srgb, var(--text-faint) 82%, transparent);
+}
 /* 当前章节：文字变实 + 导轨那一段变实。延续全站「不用色块胶囊」的取舍。 */
 .toc a[aria-current="true"] {
   color: var(--text-strong); font-weight: 640;
   border-left-color: var(--brand);
 }
 
-/* 宽屏（1500px+）给浮层让出位置，正文不被盖住。
- * 1180（--page）+ 12.5rem 浮层 + 两侧余量 ≈ 1500。 */
-@media (min-width: 1500px) {
-  .toc { right: max(1.5rem, calc(50vw - var(--page) / 2 - var(--toc-w, 12.5rem) - 1rem)); }
+/* 视口够宽时，目录贴在正文（--page）右缘外侧，不压内容。
+ * 放不下时（正文右缘到屏幕边距不足一个目录宽），把正文容器收窄并保持居中，
+ * 目录贴在收窄后的右缘外侧。之前只在 1500px 以上让位，1100–1500 这一档
+ * 整列文字直接盖在正文上；只加右侧 padding 又会把居中的标题和图挤偏。
+ * 目录只在详情页填充（hidden 时不占位），所以只在它可见时收窄。
+ * 这里统一用 rem：min()/max() 里混进 --page 的 px 会让比较失效。 */
+@media (min-width: 1101px) {
+  body:has(#toc:not([hidden])) #sections .wrap,
+  body:has(#toc:not([hidden])) .hero .wrap {
+    max-width: min(73.75rem, calc(100vw - 2 * (var(--toc-w) + 2rem)));
+  }
+  .toc {
+    right: max(
+      .75rem,
+      calc(50vw - min(73.75rem, 100vw - 2 * (var(--toc-w) + 2rem)) / 2 - var(--toc-w) - 1rem)
+    );
+  }
 }
 
 /* 窄屏：文字列一定会盖正文，收成一列圆点。
@@ -772,6 +992,12 @@ table { border-collapse: collapse; }
   }
   .toc a::before {
     content: ''; position: absolute; inset: -8px -8px -8px -8px;
+  }
+  /* 子项在圆点模式下靠尺寸区分（上面那条 padding-left 被 padding:0 压掉了，
+     这个尺寸的圆点再缩进只会看起来像没对齐）。 */
+  .toc a[data-depth="2"] {
+    width: 5px; height: 5px; padding: 0;
+    margin-right: 1px; /* 小圆点居中对齐大圆点那一列 */
   }
   .toc a[aria-current="true"] { background: var(--brand); }
   .toc a:hover, .toc a:focus-visible { background: var(--text-muted); }
@@ -968,8 +1194,8 @@ table { border-collapse: collapse; }
 
 /* ---- carousel ---- */
 /* 横屏视频用。一页上下叠 2 个（perPage 可改），左右按钮翻页。
-   左右按钮放在 viewport 外面（grid 三列），不压在视频上 —— 视频带控制条，
-   浮在上面的按钮会抢点击。窄屏改成按钮下移到页脚那一行。 */
+   左右按钮放在 viewport 外面（grid 三列），不压在视频上。
+   窄屏改成按钮下移到页脚那一行。 */
 .carousel {
   display: grid;
   grid-template-columns: auto minmax(0, 1fr) auto;
@@ -1010,7 +1236,21 @@ table { border-collapse: collapse; }
   border-color: var(--border-strong); background: var(--bg-alt);
 }
 .carousel__nav:disabled { opacity: .32; cursor: default; }
+/* 只有一页时左右按钮连同占位一起去掉。display:none 只藏内容，
+   grid 里 auto 列仍会按按钮的 40px 留空，中间那列就被挤没了。 */
+.carousel[data-single="true"] { grid-template-columns: minmax(0, 1fr); }
 .carousel[data-single="true"] .carousel__nav { display: none; }
+/* 一页只放一个、整体居中。给「逐个翻看视频 case」用。
+   限宽加在 .carousel 上而不是画面上：中间那列只有 800px 左右，
+   给画面限 820px 永远到不了，margin:auto 分不到多余空间，画面会贴在左边。
+   限整个轮播，左右按钮跟着画面一起居中。
+   960 是视频本身的宽度，两侧按钮另算，所以整条比 960 宽一圈。
+   窄屏限宽取消，视频占满。 */
+.carousel--centered {
+  max-width: calc(960px + 2 * (40px + var(--space-3)));
+  margin-inline: auto;
+}
+.carousel--centered .carousel__page { gap: 0; }
 /* 页脚：圆点 + 「第 N 组，共 M 组」 */
 .carousel__foot {
   display: flex; align-items: center; justify-content: center;
@@ -1134,6 +1374,16 @@ table.data tbody tr:hover th, table.data tbody tr:hover td { background: var(--b
 table.data tr[data-highlight="true"] th, table.data tr[data-highlight="true"] td {
   background: var(--bg-alt); font-weight: 660; color: var(--text-strong);
 }
+/* 说明性的表（数据里 wrap: true）。数字表继续 nowrap，方便对齐；
+   这种表按栏宽折行，右列不用横着拖才能看见。 */
+table.data.data--wrap { table-layout: fixed; }
+table.data.data--wrap th,
+table.data.data--wrap td {
+  white-space: normal; text-align: left; vertical-align: top;
+  overflow-wrap: break-word;
+}
+table.data.data--wrap th:first-child,
+table.data.data--wrap td:first-child { width: 24%; }
 .table-note { margin-top: var(--space-3); font-size: var(--step--1); color: var(--text-faint); }
 
 /* ---- 卡片 / 步骤 ---- */
@@ -1220,7 +1470,7 @@ ol.steps .step__body { color: var(--text-muted); font-size: .95rem; margin-top: 
 [data-reveal][data-shown="true"] { opacity: 1; transform: none; }
 /* hero 进场：分层延迟 */
 .hero__title, .hero__subtitle, .hero__venue, .hero__venue-note, .authors, .affils,
-.author-notes, .link-row, .teaser, .stats {
+.author-notes, .link-row, .tldr, .teaser, .stats {
   animation: rise 720ms var(--ease-out) both;
 }
 .hero__title      { animation-delay: 0ms; }
@@ -1231,6 +1481,7 @@ ol.steps .step__body { color: var(--text-muted); font-size: .95rem; margin-top: 
 .affils         { animation-delay: 220ms; }
 .author-notes   { animation-delay: 240ms; }
 .link-row       { animation-delay: 280ms; }
+.tldr           { animation-delay: 310ms; }
 .teaser         { animation-delay: 340ms; }
 .stats          { animation-delay: 420ms; }
 @keyframes rise {
@@ -1251,10 +1502,21 @@ ol.steps .step__body { color: var(--text-muted); font-size: .95rem; margin-top: 
 /* ============================================================= 10. PRINT === */
 @media print {
   .site-header, .toc, .switcher, .copy-btn, .lightbox, .progress,
-  .hero__aurora, .hero__grid, .hero__noise {
+  .hero__aurora, .hero__grid, .hero__noise, .hero__film, .hero__strip-toggle {
     display: none !important;
   }
   body { font-size: 10.5pt; background: #fff; color: #000; }
+  /* 视频条里的文字是写死的浅色，背景一藏就会变成白底白字 */
+  .hero__band { min-height: 0 !important; }
+  .hero__band .hero__title,
+  .hero__band .hero__title em,
+  .hero__band .tldr__text,
+  .hero__band .authors,
+  .hero__band .authors a,
+  .hero__band .authors strong,
+  .hero__band .affils,
+  .hero__band .author-notes,
+  .hero__band .section__eyebrow { color: #000 !important; }
   .section { padding: 1rem 0; break-inside: avoid; }
   .frame, .card, .table-scroll { box-shadow: none; border: 1px solid #ccc; }
   a { color: inherit; text-decoration: underline; }
