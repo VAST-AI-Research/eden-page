@@ -92,8 +92,8 @@ window.SITE_DATA = {
       zh: "为交互与仿真构建生成式模型。",
       en: "Generative models for interaction and simulation.",
     },
-    // header 里的标志用 logo.svg；浏览器标签页的 favicon 在 index.html 里单独指定
-    logo: "assets/logo.svg",
+    // header 用 VAST [EdenLive] 组合字标；favicon 在 index.html 里单独指定
+    logo: "assets/eden-logo-black.svg",
     // 页脚链接（header 主导航是 Project / Research / Blog，见下面的 nav）
     links: [
       { label: "X", href: "https://x.com/VastAIResearch", icon: "twitter" },

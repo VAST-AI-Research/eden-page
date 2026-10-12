@@ -1,0 +1,357 @@
+/* =============================================================================
+ * VAST / Eden — white editorial layer
+ * -----------------------------------------------------------------------------
+ * 叠在 css/style.css 之上。只改视觉：白底、深色文字、Instrument Sans、
+ * 直角与细线、品牌黄最多一处小点。不改文案、标题文字和路由。
+ * 页面背景固定白色，不跟随系统深色模式（html 上有 data-theme="light"）。
+ * ========================================================================== */
+
+@font-face {
+  font-family: "Instrument Sans";
+  src: url("../assets/instrument-sans-variable.ttf") format("truetype");
+  font-weight: 400 700;
+  font-stretch: 75% 100%;
+  font-display: swap;
+}
+@font-face {
+  font-family: "OPPO Sans";
+  src: url("../assets/oppo-sans.woff2") format("woff2");
+  font-weight: 100 900;
+  font-display: swap;
+}
+
+/* ---- 令牌：把紫青换成黑白灰。深色 token 块被 data-theme=light 压掉。 ---- */
+:root,
+:root[data-theme="light"] {
+  --brand: #0b0b0c;
+  --accent: #59595e;
+  --yellow: #f9cf00;
+
+  --paper: #ffffff;
+  --bg: #ffffff;
+  --bg-alt: #f8f8f6;
+  --bg-sunken: #f0f0ee;
+  --bg-glass: rgb(255 255 255 / 96%);
+
+  --ink-950: #0b0b0c;
+  --ink-900: #171719;
+  --ink-800: #242426;
+  --ink-700: #444448;
+  --ink-500: #59595e;
+  --ink-400: #717176;
+  --ink-300: #c9c9cb;
+  --ink-100: #ededeb;
+  --ink-050: #f8f8f6;
+
+  --text: #242426;
+  --text-strong: #0b0b0c;
+  --text-muted: #59595e;
+  --text-faint: #717176;
+
+  --border: #dededc;
+  --border-strong: #bdbdbf;
+  --hairline: #e9e9e7;
+  --brand-soft: #f1f1ee;
+  --brand-ring: rgb(11 11 12 / 18%);
+
+  --font-sans: "Instrument Sans", "OPPO Sans", "PingFang SC", "Hiragino Sans GB",
+               "Microsoft YaHei", sans-serif;
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+
+  --header-h: 80px;
+  --page: 1180px;
+  --page-wide: 1440px;
+  --radius: 4px;
+  --radius-sm: 3px;
+  --radius-xs: 2px;
+  --radius-pill: 3px;
+
+  --step-0: clamp(1rem, 0.96rem + 0.16vw, 1.125rem);
+  --step-1: clamp(1.12rem, 1.02rem + 0.4vw, 1.35rem);
+  --step-2: clamp(1.7rem, 1.3rem + 1.2vw, 2.6rem);
+  --step-3: clamp(1.9rem, 1.4rem + 1.6vw, 2.9rem);
+  --step-4: clamp(2.15rem, 1.4rem + 2.4vw, 3.875rem);
+  --space-9: clamp(4.5rem, 8vw, 7rem);
+
+  color-scheme: light;
+}
+
+html, body { background: #fff; color: var(--text); }
+body {
+  font-weight: 400;
+  line-height: 1.8;
+  font-variation-settings: normal;
+}
+h1, h2, h3, h4 {
+  font-weight: 500;
+  letter-spacing: -0.03em;
+  font-variation-settings: normal;
+}
+
+/* 行内代码不再染成品牌色 */
+code:not(pre code) { color: var(--text); }
+::selection { background: rgb(11 11 12 / 12%); color: var(--text-strong); }
+a { color: var(--text-strong); }
+a:hover { color: var(--text); }
+:focus-visible { outline: 2px solid #0b0b0c; outline-offset: 4px; border-radius: 2px; }
+.skip-link { background: #0b0b0c; color: #fff; border-radius: 0; }
+.prose sup.fn,
+.authors sup,
+.affils sup,
+.stat__value sup,
+.stats__notes sup { color: var(--text-muted); }
+.progress { height: 1px; background: #0b0b0c; opacity: 1; }
+
+/* ---- header：组合字标，旁边的文字名藏掉（字标里已经有） ---- */
+.site-header {
+  background: rgb(255 255 255 / 97%);
+  backdrop-filter: blur(14px);
+  -webkit-backdrop-filter: blur(14px);
+  border-bottom: 1px solid var(--hairline);
+  box-shadow: none;
+}
+.header-inner { padding-inline: clamp(24px, 4vw, 72px); gap: 20px; }
+.brand { min-height: 44px; gap: 0; }
+.brand__logo {
+  /* 字标 viewBox 是 663.59×110。166px 宽对应约 27.5px 高，
+     和改短之前（824 宽、206px）在 header 里的视觉高度一致。 */
+  width: 166px; height: auto; max-width: 100%;
+  object-fit: contain;
+}
+.brand__name { display: none; }
+.header-nav { margin-left: 20px; gap: 4px; }
+.header-nav a {
+  font-size: 14px; font-weight: 450; letter-spacing: 0;
+  border-radius: 0; padding: .42rem .7rem;
+}
+.header-nav a[aria-current="page"] { font-weight: 550; }
+.header-nav a[aria-current="page"]::after {
+  height: 1px; bottom: 2px; background: #171719; border-radius: 0;
+}
+#theme-toggle { display: none; }
+.switcher__btn {
+  border-radius: 3px; background: #fff; font-size: 13px;
+  box-shadow: none;
+}
+.switcher__menu { border-radius: 3px; }
+.switcher__item .tick { color: #0b0b0c; }
+
+/* ---- hero：去掉紫青光晕和网格，视频条改为正文下方的作品带 ---- */
+.hero__aurora, .hero__grid, .hero__noise { display: none; }
+
+.hero__title {
+  letter-spacing: -0.035em;
+  font-weight: 500;
+  line-height: 1.14;
+}
+.hero__title em { color: #0b0b0c; font-style: normal; }
+/* 详情页长标题。1080p 全屏时正文内容宽约 1108px（1180 栏减去内距，
+   目录在栏外）。「EdenLive: Real-Time Generative Rendering」在 56px、
+   字距 -0.035em 下约 1018px，正好一行；titleBreakAfter 把后半句放第二行。 */
+.hero__title:not(.hero__title--home):not(.hero__title--list) {
+  font-size: clamp(34px, 2.9vw, 56px);
+  max-width: none;
+  line-height: 1.14;
+}
+.hero__title--home { max-width: 16em; }
+.hero-title-tail { font-weight: 400; color: #59595e; }
+
+/* 带视频条的详情页：标题在上、作品带在下，文字不再压在画面上 */
+.hero__band {
+  min-height: 0;
+  padding: 66px 0 0;
+  gap: 48px;
+  background: #fff;
+  justify-content: flex-start;
+  color: var(--text);
+}
+.hero__band > .wrap { order: -1; position: relative; z-index: 1; }
+.hero__band .hero__back { display: none; }
+.hero__band .hero__title,
+.hero__band .hero__title em {
+  color: #0b0b0c;
+  text-shadow: none;
+}
+.hero__band :is(.authors, .authors a, .authors strong) {
+  color: #333336; text-shadow: none; font-size: 14px;
+}
+.hero__band :is(.affils, .affils a, .author-notes, .hero__venue, .hero__venue-text) {
+  color: #717176; text-shadow: none; font-size: 13px;
+}
+.hero__band :is(.authors sup, .affils sup) { color: #59595e; }
+
+.hero__film {
+  position: relative; inset: auto; z-index: 0;
+  width: 100%; height: 300px; background: #f5f5f2; flex: none;
+}
+.hero__film-shade { display: none; }
+.hero__strip { gap: 8px; padding: 0; }
+.hero__tile { border-radius: 2px; background: #f5f5f2; }
+.hero__strip-toggle { bottom: 16px; right: 24px; }
+.hero__below { padding-top: 58px; }
+
+.hero__notice {
+  color: #8a6a00;
+  font-size: clamp(18px, 1.6vw, 22px);
+  font-weight: 600;
+  letter-spacing: -0.01em;
+  margin: 0 auto 28px;
+}
+.tldr { margin-top: 0; max-width: 800px; }
+.tldr__text {
+  font-size: clamp(20px, 2vw, 27px);
+  line-height: 1.5;
+  font-weight: 400;
+  letter-spacing: -0.015em;
+}
+.tldr .section__eyebrow {
+  font-size: 10px; font-weight: 500; letter-spacing: .13em;
+  margin-bottom: 14px; color: #717176;
+}
+
+/* ---- 按钮：深底白字 / 白底描边，不用胶囊、不用黄 ---- */
+.link-row { gap: 10px; margin-top: 28px; }
+.btn {
+  min-height: 44px;
+  border-radius: 3px;
+  padding: 10px 19px;
+  font-size: 13px;
+  font-weight: 500;
+  box-shadow: none;
+  background: #0b0b0c;
+  border-color: #0b0b0c;
+  color: #fff;
+}
+.btn:hover { opacity: 1; background: #242426; }
+.btn--ghost,
+.hero__band .btn--ghost {
+  background: #fff;
+  border-color: #d4d4d4;
+  color: #242426;
+}
+.btn--ghost:hover,
+.hero__band .btn--ghost:hover {
+  opacity: 1;
+  background: #f5f5f2;
+  border-color: #717176;
+  color: #0b0b0c;
+}
+.btn--brand { background: #0b0b0c; border-color: #0b0b0c; color: #fff; }
+
+/* ---- 媒体与证据 ---- */
+.teaser { margin-top: 38px; }
+.frame { border-radius: 3px; box-shadow: none; }
+.caption {
+  text-align: left;
+  max-width: none;
+  font-size: 14px;
+  line-height: 1.7;
+  margin-top: 12px;
+}
+.stats { margin-top: 42px; }
+.stat { padding-block: 26px; }
+.stat__value {
+  font-size: clamp(25px, 2.8vw, 38px);
+  font-weight: 450;
+  letter-spacing: -0.03em;
+  color: #0b0b0c;
+}
+
+/* ---- 章节 ---- */
+.section--alt { background: #fff; }
+.section + .section::before {
+  background: var(--border);
+  left: max(24px, calc((100vw - 1180px) / 2));
+  right: max(24px, calc((100vw - 1180px) / 2));
+}
+.section__eyebrow {
+  font-size: 11px;
+  letter-spacing: .13em;
+  font-weight: 500;
+  color: #717176;
+  margin-bottom: 14px;
+}
+.section__title {
+  font-size: clamp(28px, 3vw, 42px);
+  font-weight: 500;
+  line-height: 1.22;
+  letter-spacing: -0.03em;
+}
+.section__body { line-height: 1.85; max-width: 78ch; margin-top: 22px; }
+.abstract__text {
+  font-size: 18px;
+  line-height: 1.85;
+  text-align: left;
+  font-variation-settings: normal;
+  color: var(--text);
+  hyphens: manual;
+}
+
+/* 卡片不再用彩色描边和上浮；当前态靠字重 */
+.item { border-radius: 3px; box-shadow: none; }
+.item:hover { transform: none; box-shadow: none; }
+.item__title em { color: #0b0b0c; }
+.card { border-radius: 3px; box-shadow: none; }
+.card:hover { transform: none; }
+
+.toc a { font-size: 12px; }
+.toc a[aria-current="true"] { color: #0b0b0c; }
+
+.site-footer { background: #f8f8f6; border-top: 1px solid var(--border); }
+.footer-links a:hover { color: #0b0b0c; }
+.copy-btn[data-copied="true"] { color: #0b0b0c; border-color: #0b0b0c; }
+
+/* 轮播圆点、查看器链接：黑，不用紫 */
+.carousel__dot[data-on="true"] { background: #0b0b0c; }
+.viewer__load:hover,
+.viewer__link { color: #0b0b0c; border-color: #0b0b0c; }
+
+/* 会议名两侧的渐变线收成实线，避免装饰渐变 */
+.hero__venue::before,
+.hero__venue::after { background: var(--border-strong); }
+.hero__venue-text .badge { color: #0b0b0c; }
+
+/* ---- 窄屏 ---- */
+@media (max-width: 760px) {
+  :root { --header-h: 68px; }
+  .header-inner { gap: 12px; padding-inline: 20px; }
+  .brand__logo { width: 132px; }
+  .header-nav { margin-left: auto; gap: 0; }
+  .header-nav a { font-size: 12px; padding-inline: 8px; }
+  .switcher { display: none; }
+
+  .hero__band { padding-top: 42px; gap: 32px; }
+  .hero__title:not(.hero__title--home):not(.hero__title--list) {
+    font-size: 38px; letter-spacing: -0.03em; line-height: 1.16;
+  }
+  .hero__film { height: 230px; }
+  .hero__below { padding-top: 40px; }
+  .btn { font-size: 12px; padding: 9px 13px; }
+  .link-row { gap: 8px; }
+  .hero__band .authors { line-height: 1.7; }
+  .section__body { font-size: 16px; }
+  .stats { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  .stat:nth-child(n + 3) { box-shadow: none; border-top: 1px solid var(--border); }
+  .hero__band > .wrap { max-width: 100% !important; }
+  .hero__band .link-row {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    max-width: 360px;
+    margin-inline: auto;
+  }
+  .hero__band .btn { justify-content: center; }
+}
+@media (max-width: 400px) {
+  .brand__logo { width: 116px; }
+  .header-inner { padding-inline: 16px; gap: 8px; }
+  .header-nav a { padding-inline: 6px; }
+  .hero__title:not(.hero__title--home):not(.hero__title--list) { font-size: 34px; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation: none !important;
+    transition: none !important;
+    scroll-behavior: auto !important;
+  }
+}

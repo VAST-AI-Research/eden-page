@@ -1861,33 +1861,13 @@
     window.addEventListener('resize', onScroll, { passive: true });
   }
 
-  /** 主题切换（跟随系统 → light → dark 循环，存 localStorage）。
-   * 换语言时按钮的 aria-label 要跟着变，所以把刷新逻辑存成模块级函数。 */
+  /** 页面固定白底。VAST 规范不跟随系统深色模式，主题按钮藏起来。
+   * refreshThemeLabel 仍留给切语言时调用，这里是空操作。 */
   let refreshThemeLabel = () => {};
   function initTheme() {
+    document.documentElement.dataset.theme = 'light';
     const btn = $('#theme-toggle');
-    const KEY = 'pp-theme';
-    const isDark = () =>
-      document.documentElement.dataset.theme === 'dark' ||
-      (!document.documentElement.dataset.theme &&
-        window.matchMedia('(prefers-color-scheme: dark)').matches);
-    const apply = (mode) => {
-      if (mode === 'light' || mode === 'dark') document.documentElement.dataset.theme = mode;
-      else delete document.documentElement.dataset.theme;
-      const dark = isDark();
-      btn.innerHTML = dark ? ICONS.sun : ICONS.moon;
-      btn.setAttribute('aria-label', dark ? ui('toLight') : ui('toDark'));
-    };
-    refreshThemeLabel = () => {
-      btn.setAttribute('aria-label', isDark() ? ui('toLight') : ui('toDark'));
-    };
-    let mode = localStorage.getItem(KEY) || 'auto';
-    apply(mode);
-    btn.addEventListener('click', () => {
-      mode = isDark() ? 'light' : 'dark';
-      localStorage.setItem(KEY, mode);
-      apply(mode);
-    });
+    if (btn) btn.hidden = true;
   }
 
   /* ---------------------------------------------------------- 语言切换 ---
