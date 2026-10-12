@@ -16,15 +16,8 @@
    * t() 负责按当前语言取值，缺失的语言回落到另一种，不会渲染出 undefined。
    * ====================================================================== */
   const LANGS = ['zh', 'en'];
-  const LANG_KEY = 'pp-lang';
-
-  /** 首次访问按浏览器语言猜，之后跟随用户的选择 */
-  function initialLang() {
-    const saved = localStorage.getItem(LANG_KEY);
-    if (LANGS.includes(saved)) return saved;
-    return /^zh\b/i.test(navigator.language || '') ? 'zh' : 'en';
-  }
-  let LANG = initialLang();
+  /* 站点目前只展示英文。数据里的 zh 字段保留，但不再读取、也不提供切换。 */
+  let LANG = 'en';
 
   /** 取当前语言的值。传入字符串/数字则原样返回。 */
   function t(v) {
@@ -1900,12 +1893,9 @@
   /* ---------------------------------------------------------- 语言切换 ---
    * 切语言不改 URL、不动滚动位置，只是把整页按新语言重画一遍。
    * 选择存 localStorage，下次访问沿用。 */
-  function initLang(rerender) {
-    const btn = $('#lang-toggle');
+  function initLang() {
     const paint = () => {
-      btn.textContent = ui('langShort');
-      btn.setAttribute('aria-label', ui('switchLang'));
-      document.documentElement.lang = LANG === 'zh' ? 'zh-CN' : 'en';
+      document.documentElement.lang = 'en';
       $('#skip-link').textContent = ui('skip');
       $('#header-nav').setAttribute('aria-label', ui('navLabel'));
       $('#toc').setAttribute('aria-label', ui('tocLabel'));
@@ -1918,12 +1908,6 @@
       refreshThemeLabel();
     };
     paint();
-    btn.addEventListener('click', () => {
-      LANG = LANG === 'zh' ? 'en' : 'zh';
-      localStorage.setItem(LANG_KEY, LANG);
-      paint();
-      rerender();
-    });
   }
 
   /* ---------------------------------------------------------- 项目切换器 ---
@@ -2251,8 +2235,8 @@
     initChrome(data, go);
     initScrollChrome();
     initTheme();
-    // 切语言：原地重画当前视图，不动 URL 也不跳回顶部
-    initLang(() => render(data, parseRoute(data), { scrollTop: false }));
+    // 站点只展示英文；initLang 只负责把静态文案和 aria-label 刷成英文
+    initLang();
 
     render(data, parseRoute(data), { scrollTop: false });
 

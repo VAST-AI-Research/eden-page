@@ -179,7 +179,6 @@ window.SITE_DATA = {
      *   → method       视觉编码器 / 数据 / 蒸馏
      *   → apps         应用方向展开（本页重点，每个一节，tocDepth: 2）
      *   → comparison   和其他路线的对比
-     *   → limitations
      *
      * 素材目前全是占位的 assets/placeholder/*.svg，真素材进来后按下面每处
      * 的注释替换（视频一律 mp4，teaser 记得配 poster）。 */
@@ -194,9 +193,9 @@ window.SITE_DATA = {
       /* TL;DR 只说一句话。详细的输入输出、布局与外观怎么分工，
        * 留给下面的 overview 一节 —— 这里铺开会变成第二个摘要。 */
       subtitle: {
-        zh: "EdenLive 以 proxy 或参考视频流为输入，以不低于 24 fps 的速度生成精细视频。",
-        en: "EdenLive renders refined video at 24 fps or more from a proxy or " +
-            "reference video stream.",
+        zh: "EdenLive 将参考视频流实时转化为生成视频（24 fps 或更高）。",
+        en: "EdenLive transforms a reference video stream into generated video " +
+            "in real time (24 fps or higher).",
       },
       date: "2026-10",
       /* 首页卡片的封面。别的条目用的是 HF 上的示意图，这个是拿 088（第一人称
@@ -287,11 +286,6 @@ window.SITE_DATA = {
       /* 宣传片。TL;DR 之后、摘要之前的那一段。 */
       teaser: {
         src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e64ab20b.mp4",
-        caption: {
-          zh: "宣传片：从 proxy 画面到实时渲染结果，以及同一参考下的不同画风。",
-          en: "Overview film: from proxy frames to real-time rendered output, and several " +
-              "looks driven by the same reference.",
-        },
       },
 
       /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
@@ -300,7 +294,7 @@ window.SITE_DATA = {
         { value: { zh: "分钟级", en: "Minutes" }, label: { zh: "连续时长", en: "continuous" } },
         { value: "480P/720P", label: { zh: "输出分辨率", en: "output" } },
         { value: { zh: "单 GPU", en: "Single GPU" }, label: { zh: "部署", en: "deployment" },
-          note: { zh: "单 GPU 部署仅适用于 5B 模型。", en: "Single-GPU deployment applies to the 5B model only." } },
+          note: { zh: "单 GPU 部署仅适用于 5B 模型（720P）。", en: "Single-GPU deployment applies to the 5B model (720P)." } },
       ],
 
       abstract: {
@@ -351,7 +345,7 @@ window.SITE_DATA = {
                 "也不要求它来自特定的渲染管线（例如 G-buffer）。两个亮点是<b>实时</b>（单 GPU<sup class=\"fn\">*</sup> 上不低于 24 fps）" +
                 "和<b>长时</b>（分钟级连续生成）—— 这两条合在一起，才让「渲染」能接到" +
                 "一个持续变化的交互回路上。</p>" +
-                "<p class=\"fn-note\"><sup class=\"fn\">*</sup> 单 GPU 部署仅适用于 5B 模型。</p>",
+                "<p class=\"fn-note\"><sup class=\"fn\">*</sup> 单 GPU 部署仅适用于 5B 模型（720P）。</p>",
             en: "<p>EdenLive operates on three <b>inputs</b>: a <b>proxy or reference video (stream)</b> " +
                 "that specifies layout, camera, and motion; a <b>target first frame</b> that " +
                 "determines the overall visual appearance; and a <b>text prompt</b> that supplies stylistic and fine-grained details. "+
@@ -366,7 +360,7 @@ window.SITE_DATA = {
                 "<b>real-time</b> generation (24 fps or more on a single GPU<sup class=\"fn\">*</sup>) and <b>long-horizon</b> " +
                 "synthesis (minutes of continuous generation). Together, they allow rendering to be " +
                 "embedded in a live interaction loop.</p>" +
-                "<p class=\"fn-note\"><sup class=\"fn\">*</sup> Single-GPU deployment applies to the 5B model only.</p>",
+                "<p class=\"fn-note\"><sup class=\"fn\">*</sup> Single-GPU deployment applies to the 5B model (720P).</p>",
           },
           src: {
             zh: "assets/edenlive/pipeline-zh.svg",
@@ -715,31 +709,6 @@ window.SITE_DATA = {
           // 不设 highlightRows：这张表讲的是定位差别，没有「我们那一行」可高亮
         },
 
-        /* ------------------------------------------------------ limitations */
-        {
-          type: "text",
-          id: "limitations",
-          eyebrow: { zh: "限制", en: "Limitations" },
-          title: { zh: "已知限制", en: "Limitations" },
-          body: {
-            zh: "<p><b>细小物体的控制与稳定性。</b>参考中占据像素较少的物体，" +
-                "其位置与形态在长时间连续生成中易发生漂移，身份保持也依旧有挑战性。</p>" +
-                "<p><b>交互延迟。</b>从用户操作到对应画面出现，目前处于百毫秒量级。" +
-                "该延迟对漫游与低频交互尚可接受，在高频对抗场景中则较为明显。</p>" +
-                "<p><b>记忆。</b>超出上下文窗口的内容不保证一致：" +
-                "离开某一位置后再返回时，画面细节可能与先前不同。</p>",
-            en: "<p><b>Control and stability of small objects.</b> Objects that occupy few " +
-                "pixels in the reference tend to drift in position and shape over long " +
-                "rollouts, and identity preservation is still promising.</p>" +
-                "<p><b>Interaction latency.</b> The delay from user input to the corresponding " +
-                "frame is currently on the order of hundreds of milliseconds. This latency is " +
-                "acceptable for exploration and low-frequency interaction, but becomes " +
-                "noticeable in high-frequency competitive settings.</p>" +
-                "<p><b>Memory.</b> Content beyond the context window is not guaranteed to " +
-                "remain consistent: leaving a location and later returning may yield " +
-                "different visual details.</p>",
-          },
-        },
       ],
     },
   ],

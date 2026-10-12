@@ -1,5 +1,5 @@
 <!DOCTYPE html>
-<html lang="zh-CN">
+<html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
@@ -32,7 +32,7 @@
 <body>
 <!-- 下面这些静态文案由 js/app.js 的 initLang() 按当前语言改写，
      这里填的是无 JS 时的兜底值。 -->
-<a class="skip-link" id="skip-link" href="#main">跳到正文</a>
+<a class="skip-link" id="skip-link" href="#main">Skip to content</a>
 <div class="progress" id="progress" aria-hidden="true"></div>
 
 <!-- ==============================================================  header
@@ -48,7 +48,7 @@
       </span>
     </a>
 
-    <nav class="header-nav" id="header-nav" aria-label="主导航"></nav>
+    <nav class="header-nav" id="header-nav" aria-label="Main navigation"></nav>
 
     <span class="header-spacer"></span>
 
@@ -63,13 +63,10 @@
         </svg>
       </button>
       <div class="switcher__menu" id="switcher-menu" role="listbox"
-           aria-label="选择项目" data-open="false"></div>
+           aria-label="Select a project" data-open="false"></div>
     </div>
 
-    <!-- 中英切换：按钮上显示的是"当前语言"，点一下换到另一种 -->
-    <button class="lang-btn" id="lang-toggle" type="button" aria-label="切换语言">中</button>
-
-    <button class="icon-btn" id="theme-toggle" type="button" aria-label="切换深浅色模式"></button>
+    <button class="icon-btn" id="theme-toggle" type="button" aria-label="Toggle color theme"></button>
   </div>
 </header>
 
@@ -78,12 +75,12 @@
   <!-- hero 由 js 渲染：列表页是栏目标题，详情页是论文标题/作者/链接/teaser -->
   <div class="hero" id="hero">
     <div class="wrap">
-      <p id="hero-placeholder" style="padding:5rem 0;color:var(--text-muted)">正在加载…</p>
+      <p id="hero-placeholder" style="padding:5rem 0;color:var(--text-muted)">Loading…</p>
     </div>
   </div>
 
   <!-- 章节内导航，吸附在 header 下面（只有详情页会填充） -->
-  <nav class="toc" id="toc" aria-label="章节导航" hidden></nav>
+  <nav class="toc" id="toc" aria-label="On this page" hidden></nav>
 
   <!-- 列表页的卡片 / 详情页的各 section 都插到这里 -->
   <div id="sections"></div>
@@ -96,7 +93,7 @@
       <strong id="footer-team" style="color:var(--text);font-size:1rem"></strong>
       <p id="footer-note" style="margin-top:.4rem;max-width:46ch"></p>
     </div>
-    <nav class="footer-links" id="footer-links" aria-label="页脚链接"></nav>
+    <nav class="footer-links" id="footer-links" aria-label="Footer links"></nav>
   </div>
   <div class="wrap">
     <p class="credit" id="footer-credit"></p>
@@ -104,8 +101,8 @@
 </footer>
 
 <!-- ============================================================ lightbox -->
-<div class="lightbox" id="lightbox" data-open="false" role="dialog" aria-modal="true" aria-label="放大预览">
-  <button class="lightbox__close" id="lightbox-close" type="button" aria-label="关闭预览">
+<div class="lightbox" id="lightbox" data-open="false" role="dialog" aria-modal="true" aria-label="Zoomed preview">
+  <button class="lightbox__close" id="lightbox-close" type="button" aria-label="Close preview">
     <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.2"
          stroke-linecap="round" aria-hidden="true"><path d="M6 6l12 12M18 6 6 18"/></svg>
   </button>
