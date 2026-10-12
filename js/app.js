@@ -277,7 +277,17 @@
     }
     if (Array.isArray(p.affiliations) && p.affiliations.length) {
       const list = p.affiliations
-        .map((a, i) => `<sup>${i + 1}</sup>${esc(t(a))}`)
+        .map((a, i) => {
+          // 机构可以是字符串，也可以是 { name, url }。url 给了才变成链接，
+          // 新标签页打开，和作者名字的链接同一套。
+          const name = (a && typeof a === 'object') ? a.name : a;
+          const url = (a && typeof a === 'object') ? a.url : '';
+          const text = esc(t(name));
+          const body = url
+            ? `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>`
+            : text;
+          return `<sup>${i + 1}</sup>${body}`;
+        })
         .join('<span aria-hidden="true">　</span>');
       frag.append(el('div', { class: 'affils' }, list));
     }
@@ -465,9 +475,14 @@
     const links = renderLinkRow(p.links);
     if (links) wrap.append(links);
 
-    /* 下半截：TL;DR、teaser 和 highlights。带 band 时它们另起一个 .wrap，
-     * 落在视频条外面的正常背景上；不带 band 时沿用上面那个 wrap。 */
+    /* 下半截：开源预告、TL;DR、teaser 和 highlights。带 band 时它们另起一个
+     * .wrap，落在视频条外面的正常背景上；不带 band 时沿用上面那个 wrap。 */
     const below = band ? el('div', { class: 'wrap hero__below' }) : wrap;
+
+    // 开源预告：一句话，品牌色，放在 TL;DR 之前。没写 notice 就不出现。
+    if (p.notice) {
+      below.append(el('p', { class: 'hero__notice' }, esc(t(p.notice))));
+    }
 
     // TL;DR：一句话说清这篇做了什么。放在按钮/视频条之后、teaser 之前 ——
     // 标题下面挤着 venue/作者/按钮，这句话在那儿会被当成副标题读过去。

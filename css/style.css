@@ -516,9 +516,12 @@ body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
 .hero__band .authors a,
 .hero__band .authors strong { color: #e8eaf4; }
 .hero__band .affils,
+.hero__band .affils a,
 .hero__band .author-notes,
 .hero__band .hero__venue { color: #c3c8da; }
-.hero__band .section__eyebrow { color: #c9c2ff; }
+.hero__band .affils a:hover { color: #fff; }
+.hero__band .authors sup,
+.hero__band .affils sup { color: #d9d3ff; }
 .hero__band .hero__back { color: #d6dae8; }
 .hero__band .hero__back:hover { color: #fff; }
 /* 按钮：实心那颗保持品牌色，描边那些改成浅色描边 */
@@ -585,6 +588,16 @@ body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
   font-size: var(--step-1); color: var(--text-muted); text-align: center;
   max-width: 56ch; margin: var(--space-5) auto 0;
   font-weight: 400; line-height: 1.55; letter-spacing: -0.008em;
+}
+
+/* 开源预告：TL;DR 上方的一句话，红色高亮。只在数据里写了 notice 时出现。
+ * 行宽和 .tldr 对齐，字重抬一档让它压过下面那句总结。
+ * 红色写死、不跟主题走：品牌紫在深色底上偏淡，这里要的就是醒目。 */
+.hero__notice {
+  max-width: 74ch; margin: var(--space-6) auto 0;
+  text-align: center;
+  color: #e23b3b; font-weight: 650;
+  font-size: var(--step-1); line-height: 1.5; letter-spacing: -0.01em;
 }
 
 /* ---- TL;DR ------------------------------------------------------------

@@ -32,7 +32,7 @@ HF 上 `assets/edenlive/clips/<code>.mp4` 与本地 `artifacts/` 原文件的对
 | `a4195340` | `artifacts/edenlive-wipe-480/140-提灯划小船___ea1d13/wan22-720p.mp4` |
 | `92849ce6` | `artifacts/edenlive-wipe-480/155-闪身步剪辑版___6a9ab3/wan21-14b-480p.mp4` |
 | `7eb84745` | `artifacts/edenlive-wipe-480/168-运河小船___1f1c4a/wan22-720p.mp4` |
-| `e64ab20b` | `artifacts/edenlive-tmp-assets/teaser-video.mp4` |
+| `e64ab20b` | `artifacts/edenlive-tmp-assets/edenlive_demo_A.mp4` |
 | `bafe32b9` | `artifacts/overlay9/088-freezelava-overlay.mp4` |
 | `cf2421f7` | `artifacts/overlay9/057-arcadeduel-overlay.mp4` |
 | `edf33f08` | `artifacts/overlay9/081-caveaxe-overlay.mp4` |

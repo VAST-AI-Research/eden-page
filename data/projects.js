@@ -186,7 +186,7 @@ window.SITE_DATA = {
     {
       id: "edenlive",
       title: {
-        zh: "EdenLive：以参考为控制的*实时生成式渲染*",
+        zh: "EdenLive：任意参考的*实时生成式渲染*",
         en: "EdenLive: *Real-Time Generative Rendering* from Any Reference",
       },
       titleBreakAfter: { zh: "", en: "EdenLive: *Real-Time Generative Rendering*" },
@@ -254,19 +254,35 @@ window.SITE_DATA = {
         ],
       },
 
-      // TODO: 补齐真实作者名单和单位
       authors: [
-        { name: { zh: "合作者", en: "Collaborator" }, url: "#", affil: [1] },
+        { name: "Zehuan Huang", affil: [1], note: "*", bold: true },
+        { name: "Tianxing Xu", affil: [1], note: "*", bold: true },
+        { name: "Chunli Peng", affil: [1], note: "*", bold: true },
+        { name: "Cheng Zhang", affil: [1], note: "*", bold: true },
+        { name: "Yifei Song", affil: [1], note: "†", breakBefore: true },
+        { name: "Zeyi Zheng", affil: [1], note: "†" },
+        { name: "Zhipeng Yu", affil: [1] },
+        { name: "Peng Wang", affil: [1], note: "‡", bold: true },
+        { name: "Yan-Pei Cao", affil: [1], note: "✉", bold: true },
       ],
-      affiliations: ["Eden"],
+      affiliations: [{ name: "VAST", url: "https://www.tripo3d.ai/" }],
+      authorNotes: {
+        zh: "* 同等贡献　† VAST 实习生　‡ 项目负责人　✉ 通讯作者",
+        en: "* Equal contribution　† Intern at VAST　‡ Project lead　✉ Corresponding author",
+      },
 
-      // TODO: 发布时补上真实地址
       links: [
         { label: { zh: "论文", en: "Paper" }, href: "#", icon: "arxiv" },
-        { label: { zh: "代码", en: "Code" }, href: "#", icon: "github" },
-        { label: { zh: "模型权重", en: "Weights" }, href: "#", icon: "hf" },
+        { label: { zh: "代码", en: "Code" }, href: "https://github.com/VAST-AI-Research/EdenLive", icon: "github" },
+        { label: { zh: "模型权重", en: "Weights" }, href: "https://huggingface.co/VAST-AI/EdenLive", icon: "hf" },
         { label: { zh: "在线试玩", en: "Live Demo" }, href: "#", icon: "demo" },
       ],
+
+      /* 开源预告。渲染在 TL;DR 前面，品牌色高亮。 */
+      notice: {
+        zh: "EdenLive 将在 2026.10.18 前开源！",
+        en: "EdenLive will be open-sourced by 2026.10.18!",
+      },
 
       /* 宣传片。TL;DR 之后、摘要之前的那一段。 */
       teaser: {
