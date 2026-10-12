@@ -218,6 +218,9 @@ body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
 .measure, .prose { max-width: var(--measure); }
 .prose { color: var(--text-muted); }
 .prose strong, .prose b { color: var(--text); font-weight: 620; }
+/* 正文里的脚注标记和段尾脚注，样式和 highlights 那行脚注保持一致 */
+.prose sup.fn { color: var(--brand); font-size: .7em; padding-left: 1px; font-weight: 600; }
+.prose .fn-note { color: var(--text-faint); font-size: var(--step--2); }
 
 /* 顶部滚动进度条：细一点、单色，不用三色渐变 */
 .progress {
@@ -803,6 +806,15 @@ body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
   margin-top: .45rem; color: var(--text-muted);
   font-size: var(--step--1); letter-spacing: .005em;
 }
+.stat__value sup {
+  color: var(--brand); font-size: .50em; padding-left: 2px; font-weight: 600;
+  letter-spacing: 0; vertical-align: super;
+}
+.stats__notes {
+  margin-top: var(--space-2); text-align: center;
+  color: var(--text-faint); font-size: var(--step--2);
+}
+.stats__notes sup { color: var(--brand); padding-right: 2px; font-weight: 600; }
 
 /* ========================================================== 6. SECTIONS === */
 .section {

@@ -517,12 +517,20 @@
     // highlights
     if (Array.isArray(p.highlights) && p.highlights.length) {
       const stats = el('div', { class: 'stats' });
+      // 脚注标记按出现顺序取符号（*、**、***），不用数字
+      const notes = [];
+      const markOf = (i) => '*'.repeat(i + 1);
       p.highlights.forEach((h) => {
+        const mark = h.note ? `<sup>${markOf(notes.push(t(h.note)) - 1)}</sup>` : '';
         stats.append(el('div', { class: 'stat' },
-          `<div class="stat__value">${esc(t(h.value))}</div>` +
+          `<div class="stat__value">${esc(t(h.value))}${mark}</div>` +
           `<div class="stat__label">${esc(t(h.label))}</div>`));
       });
       below.append(stats);
+      if (notes.length) {
+        below.append(el('p', { class: 'stats__notes' },
+          notes.map((n, i) => `<sup>${markOf(i)}</sup> ${esc(n)}`).join('　')));
+      }
     }
 
     // 不带 band 时 wrap 还没挂上去；带 band 时 wrap 已经在 band 里了

@@ -195,7 +195,7 @@ window.SITE_DATA = {
        * 留给下面的 overview 一节 —— 这里铺开会变成第二个摘要。 */
       subtitle: {
         zh: "EdenLive 以 proxy 或参考视频流为输入，以不低于 24 fps 的速度生成精细视频。",
-        en: "EdenLive renders fine video at 24 fps or more from a proxy or " +
+        en: "EdenLive renders refined video at 24 fps or more from a proxy or " +
             "reference video stream.",
       },
       date: "2026-10",
@@ -256,7 +256,7 @@ window.SITE_DATA = {
 
       authors: [
         { name: "Zehuan Huang", affil: [1], note: "*", bold: true },
-        { name: "Tianxing Xu", affil: [1], note: "*", bold: true },
+        { name: "Tian-Xing Xu", affil: [1], note: "*", bold: true },
         { name: "Chunli Peng", affil: [1], note: "*", bold: true },
         { name: "Cheng Zhang", affil: [1], note: "*", bold: true },
         { name: "Yifei Song", affil: [1], note: "†", breakBefore: true },
@@ -299,29 +299,37 @@ window.SITE_DATA = {
         { value: ">24 FPS", label: { zh: "实时生成", en: "real-time" } },
         { value: { zh: "分钟级", en: "Minutes" }, label: { zh: "连续时长", en: "continuous" } },
         { value: "480P/720P", label: { zh: "输出分辨率", en: "output" } },
-        { value: { zh: "单 GPU", en: "Single GPU" }, label: { zh: "部署", en: "deployment" } },
+        { value: { zh: "单 GPU", en: "Single GPU" }, label: { zh: "部署", en: "deployment" },
+          note: { zh: "单 GPU 部署仅适用于 5B 模型。", en: "Single-GPU deployment applies to the 5B model only." } },
       ],
 
       abstract: {
-        zh: "EdenLive 是 Project Eden 系列中面向交互场景的生成式视频实时渲染模型。" +
+        zh: "我们提出 EdenLive，Project Eden 系列中面向交互场景的实时生成式视频渲染器。" +
             "它以 proxy 或参考视频作为控制信号，结合目标首帧与文本提示词，" +
-            "持续生成更精细、可呈现不同画风的视频。proxy 是交代场景布局、镜头和运动的" +
-            "简化画面，可以来自代码 Agent 搭建的场景、现有引擎或工作台，已有视频也可以" +
-            "直接作为参考输入。与把交互状态也一并交给模型的做法不同，" +
-            "EdenLive 把状态维护和画面渲染解耦：规则、碰撞、血条这些由上游脚本或引擎负责，" +
-            "EdenLive 只负责沿着空间与结构参考把画面渲染出来。" +
-            "这让它既能接入持续变化的实时参考流，也能对已有视频做重渲染。",
-        en: "EdenLive is the real-time generative video renderer in the Project Eden series, " +
-            "built for interactive settings. It takes a proxy or reference video as its " +
-            "control signal and combines it with a target first frame and a text prompt to " +
-            "continuously generate finer, restyled video. A proxy is a simplified rendering " +
-            "that conveys scene layout, camera, and motion. It may come from a coding agent, " +
-            "an existing engine, or a workbench, and recorded video can serve as a reference " +
-            "directly. Unlike approaches that hand interaction state to the model as well, " +
-            "EdenLive decouples state from rendering: rules, collisions, and health bars stay " +
-            "with the upstream script or engine, while EdenLive only renders along the spatial " +
-            "and structural reference. That lets it consume a live, continuously changing " +
-            "reference stream as readily as it re-renders existing footage.",
+            "持续生成照片级真实、更精细或风格化的视频。" +
+            "这里的 proxy 是刻画场景布局、相机运动与粗粒度动态的简化渲染画面，" +
+            "可由代码 Agent、现有引擎或工作台生成，也可直接用录制视频代替。" +
+            "不同于联合建模交互逻辑与视觉内容的方法，EdenLive 将交互状态与渲染解耦：" +
+            "游戏逻辑、交互机制与世界状态由上游代码或引擎维护，" +
+            "EdenLive 只负责提升视觉呈现、生成风格化画面。" +
+            "这样 EdenLive 可以专注于生成质量，" +
+            "世界状态则由上游代码以轻量、显式且精确的方式演化。" +
+            "EdenLive 能以超过 24 FPS 的速度实时生成，支持分钟级连续合成，输出 480P/720P 分辨率，" +
+            "在生成效率与视觉质量之间取得了良好平衡。",
+        en: "We introduce EdenLive, a real-time generative video renderer tailored to interactive settings " +
+            "within the Project Eden series. Conditioned on a proxy or reference video as the control " +
+            "signal, together with a target first frame and a text prompt, EdenLive continuously produces " +
+            "photorealistic, refined, or stylized video. A proxy here denotes a simplified " +
+            "rendering that captures scene layout, camera motion, and coarse dynamics. Such a proxy can be " +
+            "produced by a coding agent, an existing engine, or a workbench; alternatively, recorded videos " +
+            "can be used directly in place of a proxy. Unlike methods that jointly model interaction logic " +
+            "and visual content, EdenLive decouples interaction state from rendering: game logic, interaction " +
+            "mechanisms, and world state are maintained by the upstream code or engine, whereas EdenLive is " +
+            "responsible only for enhancing visual presentation and generating stylized output. This design " +
+            "enables EdenLive to focus on improving generation quality, while the upstream code governs a " +
+            "lightweight, explicit yet precise evolution of the world state. EdenLive achieves real-time " +
+            "generation at over 24 FPS, sustains minute-scale continuous synthesis, and supports 480P/720P " +
+            "output, striking a good balance between efficiency and visual quality."
       },
 
       sections: [
@@ -339,24 +347,26 @@ window.SITE_DATA = {
                 "动画与仿真画面、乃至一段录屏，都可以直接用。" +
                 "<b>输出</b>是一段精细的视频，或者一条持续的视频流。</p>" +
                 "<p>EdenLive 可以概括为 <b>proxy-to-fine</b>：" +
-                "它关注参考画面提供的结构与运动，而不要求输入参考达到某种细节度或" +
-                "来自某种特定制作方式。两个亮点是<b>实时</b>（单 GPU 上不低于 24 fps）" +
+                "它利用 proxy 提供的结构与运动信息，而不要求参考达到某种几何精细程度，" +
+                "也不要求它来自特定的渲染管线（例如 G-buffer）。两个亮点是<b>实时</b>（单 GPU<sup class=\"fn\">*</sup> 上不低于 24 fps）" +
                 "和<b>长时</b>（分钟级连续生成）—— 这两条合在一起，才让「渲染」能接到" +
-                "一个持续变化的交互回路上。</p>",
-            en: "<p>There are three <b>inputs</b>: a <b>proxy or reference video (stream)</b> " +
-                "that carries layout, camera, and motion; a <b>target first frame</b> that " +
-                "sets the overall look; and a <b>text prompt</b> that fills in style and " +
-                "detail. The proxy can come from anywhere — a 2D or 3D scene assembled by a " +
+                "一个持续变化的交互回路上。</p>" +
+                "<p class=\"fn-note\"><sup class=\"fn\">*</sup> 单 GPU 部署仅适用于 5B 模型。</p>",
+            en: "<p>EdenLive operates on three <b>inputs</b>: a <b>proxy or reference video (stream)</b> " +
+                "that specifies layout, camera, and motion; a <b>target first frame</b> that " +
+                "determines the overall visual appearance; and a <b>text prompt</b> that supplies stylistic and fine-grained details. "+
+                "The proxy can originate from arbitrary sources — a 2D or 3D scene assembled by a " +
                 "coding agent, animation or simulation frames from an existing engine or " +
-                "workbench, even a screen recording. The <b>output</b> is a finer video, or a " +
+                "workbench, or even a screen recording. The <b>output</b> is a refined video or a " +
                 "continuous video stream.</p>" +
-                "<p>EdenLive can be summed up as <b>proxy-to-fine</b>: it attends to the " +
-                "structure and motion the reference provides, without requiring that " +
-                "reference to hit a particular level of detail or come from a particular " +
-                "production path. Its two defining properties are being <b>real-time</b> " +
-                "(24 fps or more on a single GPU) and <b>long-horizon</b> (minutes of " +
-                "continuous generation). Together those are what let rendering sit inside a " +
-                "live interaction loop at all.</p>",
+                "<p>The paradigm of EdenLive can be summarized as <b>proxy-to-fine</b>: it leverages the " +
+                "structural and motion information provided by the proxy, without requiring the " +
+                "reference to attain a specific level of geometric detail or to be produced through a particular " +
+                "rendering pipeline (e.g., G-buffers). Its two defining properties are " +
+                "<b>real-time</b> generation (24 fps or more on a single GPU<sup class=\"fn\">*</sup>) and <b>long-horizon</b> " +
+                "synthesis (minutes of continuous generation). Together, they allow rendering to be " +
+                "embedded in a live interaction loop.</p>" +
+                "<p class=\"fn-note\"><sup class=\"fn\">*</sup> Single-GPU deployment applies to the 5B model only.</p>",
           },
           src: {
             zh: "assets/edenlive/pipeline-zh.svg",
@@ -365,12 +375,12 @@ window.SITE_DATA = {
           caption: {
             zh: "<b>整体流程。</b>输入来源（代码 Agent / 引擎工作台 / 已有视频）→ " +
                 "proxy 或参考视频流 → EdenLive 生成式渲染（叠加目标首帧与提示词）→ " +
-                "精细视频流。自定义交互由上游的代码和引擎定义，读者看到画面后继续操作，" +
+                "精细视频流。自定义交互由上游的代码和引擎定义，用户看到画面后继续操作，" +
                 "形成闭环。",
             en: "<b>Pipeline.</b> Input sources (coding agent, engine or workbench, existing " +
                 "video) → proxy or reference stream → EdenLive generative rendering, " +
-                "conditioned on the target first frame and prompt → fine video stream. " +
-                "Custom interaction is defined upstream in code or the engine; the viewer " +
+                "conditioned on the target first frame and prompt → refined video stream. " +
+                "Custom interaction is defined upstream in code or the engine; the user " +
                 "acts on what they see, closing the loop.",
           },
         },
@@ -380,25 +390,26 @@ window.SITE_DATA = {
           eyebrow: { zh: "交互回路", en: "Interaction loop" },
           title: { zh: "交互逻辑在先，画面随参考变化", en: "Logic First, Pixels Follow" },
           body: {
-            zh: "<p>以游戏为例：Code Agent 先生成" +
-                "场景 proxy 和引擎代码，由它负责状态与交互逻辑。玩家体验游戏时，" +
-                "鼠标键盘操作交给引擎，由它更新交互状态并输出简化画面；" +
-                "这串 <b>proxy 帧流</b>逐步传给 EdenLive，叠加目标首帧与提示词后" +
-                "持续生成精细画面；用户看到结果，继续下一步操作。" +
-                "<b>规则、碰撞、状态与反馈始终由上游维护</b>，从而从视频扩散模型中解耦出来" +
-                "—— 这正是<b>纯靠 action 条件生成的世界模型难以处理的部分</b>" +
-                "（血条、技能冷却、NPC 状态、成功与失败的反馈）。</p>",
-            en: "<p>Take a game as the example. A " +
-                "coding agent first produces the scene proxy and engine code, owning the state " +
-                "and the interaction logic. While the player plays, their mouse and keyboard " +
-                "input goes to the engine, which updates interaction state and emits simplified " +
-                "frames. That <b>proxy frame stream</b> feeds into EdenLive, which — conditioned " +
-                "on the target first frame and prompt — continuously renders fine frames. The " +
-                "user sees the result and acts again. <b>Rules, collisions, state, and feedback " +
-                "stay upstream throughout</b>, decoupled from the video diffusion model — which " +
-                "is exactly <b>the part purely action-conditioned world models struggle " +
-                "with</b>: health bars, cooldowns, NPC state, and any signal of success or " +
-                "failure.</p>",
+            zh: "<p>以游戏为例：Code Agent 首先生成场景 proxy 与引擎代码，" +
+                "并由其维护世界状态与交互逻辑。游戏过程中，鼠标与键盘输入交由引擎处理，" +
+                "引擎更新交互状态并输出简化画面；所得 <b>proxy 帧流</b>被送入 EdenLive，" +
+                "在目标首帧与文本提示词的条件下持续合成精细画面；" +
+                "用户观察渲染结果后发出下一步操作。" +
+                "<b>规则、碰撞、状态与反馈始终由上游维护</b>，从而与视频扩散模型解耦" +
+                "—— 这正是<b>纯以 action 为条件的世界模型难以可靠表示的部分</b>" +
+                "（血条、技能冷却、NPC 状态，以及成功与失败的反馈）。</p>",
+            en: "<p>Consider a game as a representative setting. A coding agent first " +
+                "generates the scene proxy and the engine code, which jointly maintain world " +
+                "state and interaction logic. During gameplay, mouse and keyboard input is " +
+                "routed to the engine, which updates the interaction state and emits simplified " +
+                "frames. The resulting <b>proxy frame stream</b> is forwarded to EdenLive, which, " +
+                "conditioned on the target first frame and a text prompt, continuously " +
+                "synthesizes refined frames. The user observes the rendered output and issues " +
+                "the subsequent action. <b>Rules, collisions, state, and feedback remain under " +
+                "upstream control throughout</b>, and are thereby decoupled from the video " +
+                "diffusion model — precisely <b>the class of signals that purely " +
+                "action-conditioned world models are ill-equipped to maintain</b>, including " +
+                "health bars, skill cooldowns, NPC state, and success or failure feedback.</p>",
           },
           src: {
             zh: "assets/edenlive/interaction-zh.svg",
@@ -420,48 +431,49 @@ window.SITE_DATA = {
           type: "features",
           id: "highlights",
           eyebrow: { zh: "亮点", en: "Highlights" },
-          title: { zh: "EdenLive 的四个特点", en: "What Sets EdenLive Apart" },
+          title: { zh: "EdenLive 的四个特点", en: "Key Properties of EdenLive" },
           items: [
             {
-              title: { zh: "多种参考输入", en: "Many kinds of reference" },
+              title: { zh: "多种参考输入", en: "Diverse reference inputs" },
               body: {
-                zh: "2D / 3D proxy 和参考视频都能用。关注的是参考提供的结构与运动，" +
-                    "不把输入限定在某一种细节度或制作方式。",
-                en: "2D or 3D proxies and reference video all work. What matters is the " +
-                    "structure and motion the reference provides, not its level of detail " +
-                    "or how it was produced.",
+                zh: "同时支持 2D / 3D proxy 与参考视频。模型利用参考所提供的结构与运动，" +
+                    "而不对输入的几何精细程度或制作路径施加限制。",
+                en: "Accepts 2D and 3D proxies as well as reference video. The model " +
+                    "exploits the structure and motion conveyed by the reference, without " +
+                    "constraining its level of geometric detail or the pipeline by which it was produced.",
               },
               icon: "spark",
             },
             {
-              title: { zh: "保留布局，改变外观", en: "Keep the layout, change the look" },
+              title: { zh: "布局保持与外观可控", en: "Layout-preserving, appearance-controllable" },
               body: {
-                zh: "镜头、布局与动作跟着参考走，目标外观和画风由首帧与提示词灵活指定 —— " +
-                    "同一段参考可以渲出完全不同的画风。",
-                en: "Camera, layout, and motion follow the reference, while the target look " +
-                    "comes from the first frame and prompt — one reference, many distinct " +
-                    "styles.",
+                zh: "相机、布局与运动由参考约束，目标外观与画风由首帧和提示词指定。" +
+                    "同一段参考因此可以渲染为多种风格。",
+                en: "Camera, layout, and motion remain constrained by the reference, while " +
+                    "target appearance and style are specified by the first frame and the " +
+                    "prompt. A single reference can thus be rendered in multiple distinct styles.",
               },
               icon: "video",
             },
             {
               title: { zh: "实时且长时", en: "Real-time and long-horizon" },
               body: {
-                zh: "单 GPU 上不低于 24 fps，支持分钟级连续生成，" +
-                    "可以把渲染接到持续、实时变化的参考画面上。",
-                en: "24 fps or more on a single GPU, sustained for minutes, so rendering can " +
-                    "attach to a continuously changing live reference.",
+                zh: "生成速度不低于 24 fps，并支持分钟级连续合成，" +
+                    "从而可将渲染接入持续变化的实时参考流。",
+                en: "Generates at 24 fps or above and sustains minute-scale continuous " +
+                    "synthesis, enabling rendering to consume a continuously evolving live " +
+                    "reference stream.",
               },
               icon: "bolt",
             },
             {
               title: { zh: "开源", en: "Open source" },
               body: {
-                zh: "放出不同尺寸的模型权重、推理与评测代码，以及一条端到端 demo：" +
-                    "提示词出游戏 → 试玩 → 定首帧 → EdenLive 实时渲染。",
-                en: "Model weights at several sizes, inference and evaluation code, plus an " +
-                    "end-to-end demo: prompt a game, play it, pick a first frame, and let " +
-                    "EdenLive render it live.",
+                zh: "发布多种规模的模型权重、推理与评测代码，以及一条端到端演示：" +
+                    "由提示词生成游戏、试玩、指定首帧，再由 EdenLive 实时渲染。",
+                en: "Releases model weights at multiple scales, together with inference and " +
+                    "evaluation code and an end-to-end demonstration: a game is generated from " +
+                    "a prompt, played, assigned a first frame, and rendered in real time by EdenLive.",
               },
               icon: "github",
             },
@@ -473,41 +485,43 @@ window.SITE_DATA = {
           eyebrow: { zh: "方法", en: "Method" },
           title: { zh: "核心技术", en: "Core Techniques" },
           body: {
-            zh: "三件事决定了 EdenLive 能不能「跟得住参考」并且「跑得够快」。" +
-                "细节见论文。",
-            en: "Three things decide whether EdenLive can follow a reference faithfully and " +
-                "still run fast enough. See the paper for details.",
+            zh: "EdenLive 对参考的忠实跟随与实时生成能力主要来自以下三项技术。" +
+                "具体细节请参阅论文。",
+            en: "EdenLive's faithful adherence to the reference and its real-time generation " +
+                "capability rest on three core techniques. Please refer to the paper for " +
+                "further details.",
           },
           items: [
             {
-              title: { zh: "提取结构与运动的视觉编码器", en: "Structure-and-motion encoder" },
+              title: { zh: "结构与运动视觉编码器", en: "Structure-and-motion encoder" },
               body: {
-                zh: "从参考画面里抽出布局、镜头与运动，并丢掉外观细节 —— " +
-                    "这是「参考不必精细」的前提，也让同一段 proxy 能渲出不同画风。",
-                en: "Pulls layout, camera, and motion out of the reference while discarding " +
-                    "appearance. This is what lets the reference stay coarse, and what lets " +
-                    "one proxy render into many different looks.",
+                zh: "从参考画面中提取布局、相机与运动信息，同时剥离外观细节。" +
+                    "这一设计使参考无需具备精细外观，也使同一段 proxy 能够渲染为不同风格。",
+                en: "Extracts layout, camera, and motion from the reference while discarding " +
+                    "appearance information. This design allows the reference to remain coarse " +
+                    "and enables a single proxy to be rendered in diverse styles.",
               },
               icon: "spark",
             },
             {
               title: { zh: "高质量数据管线", en: "High-quality data pipeline" },
               body: {
-                zh: "构造「粗参考 → 精细画面」的配对数据，覆盖 2D / 3D proxy、" +
-                    "引擎画面和真实视频，让模型见过足够多的参考形态。",
-                en: "Builds coarse-reference-to-fine-frame pairs spanning 2D and 3D proxies, " +
-                    "engine output, and real video, so the model has seen enough kinds of " +
-                    "reference.",
+                zh: "构建「粗粒度参考 → 精细画面」的配对数据，覆盖 2D / 3D proxy、" +
+                    "引擎渲染画面与真实视频，使模型能够泛化到多样的参考形态。",
+                en: "Constructs paired data from coarse references to refined frames, " +
+                    "spanning 2D and 3D proxies, engine renderings, and real-world video, " +
+                    "so that the model generalizes across diverse reference modalities.",
               },
               icon: "data",
             },
             {
               title: { zh: "实时视频蒸馏", en: "Real-time video distillation" },
               body: {
-                zh: "把多步扩散蒸馏成少步的流式生成，是 >24 fps 和分钟级连续生成的" +
-                    "直接来源。",
-                en: "Distills multi-step diffusion into few-step streaming generation — the " +
-                    "direct source of >24 fps and minutes-long rollouts.",
+                zh: "将多步扩散模型蒸馏为少步流式生成器，" +
+                    "从而实现超过 24 fps 的实时生成与分钟级连续合成。",
+                en: "Distills a multi-step diffusion model into a few-step streaming " +
+                    "generator, enabling real-time generation above 24 fps and minute-scale " +
+                    "continuous synthesis.",
               },
               icon: "bolt",
             },
@@ -522,13 +536,14 @@ window.SITE_DATA = {
           // 不写「四类」：下面只是举了四个方向，不是说总共就这么多
           title: { zh: "应用方向", en: "Application Areas" },
           body: {
-            zh: "<p>下面分节展开几个方向。共同的前提是：" +
-                "<b>参考画面约束布局与运动，外观由首帧和提示词指定</b> —— " +
-                "所以凡是「结构已经有了、缺的是画面」的场合都适用。</p>",
-            en: "<p>A few directions are expanded below. The shared premise: <b>the reference " +
-                "constrains layout and motion, while the first frame and prompt set the " +
-                "look</b> — so any setting where the structure already exists and only the " +
-                "pixels are missing is a fit.</p>",
+            zh: "<p>下文分节介绍若干应用方向。它们共享同一前提：" +
+                "<b>参考约束布局与运动，外观由首帧与提示词指定</b>。" +
+                "因此，凡结构已给定、仅缺视觉呈现的场景，均可适用。</p>",
+            en: "<p>We next describe several application areas that share a common premise: " +
+                "<b>the reference constrains layout and motion, while appearance is specified " +
+                "by the first frame and the prompt</b>. The method is therefore applicable " +
+                "whenever scene structure is already available and only visual presentation " +
+                "remains to be synthesized.</p>",
           },
         },
         {
@@ -538,11 +553,13 @@ window.SITE_DATA = {
           eyebrow: { zh: "应用", en: "Application" },
           title: { zh: "游戏类交互式预览", en: "Interactive Game Preview" },
           body: {
-            zh: "<p>这是最能体现解耦设计的一类。Code Agent 生成场景 proxy 和引擎代码，" +
-                "负责状态与交互控制；EdenLive 作为实时渲染器持续合成高保真画面。</p>",
-            en: "<p>This is where the decoupled design shows most clearly. A coding agent " +
-                "produces the scene proxy and engine code, owning state and interaction; " +
-                "EdenLive acts as the real-time renderer.</p>",
+            zh: "<p>该类应用最能体现状态与渲染解耦的设计。" +
+                "Code Agent 生成场景 proxy 与引擎代码，并维护状态与交互控制；" +
+                "EdenLive 作为实时渲染器持续合成高保真画面。</p>",
+            en: "<p>This application most clearly illustrates the decoupling of state from " +
+                "rendering. A coding agent generates the scene proxy and the engine code, " +
+                "and maintains state together with interaction control; EdenLive serves as " +
+                "the real-time renderer, continuously synthesizing high-fidelity frames.</p>",
           },
           perPage: 1,
           layout: "centered",
@@ -565,12 +582,12 @@ window.SITE_DATA = {
           eyebrow: { zh: "应用", en: "Application" },
           title: { zh: "场景与动画预览", en: "Scene and Animation Preview" },
           body: {
-            zh: "同一套布局与运镜，渲出不同的外观。适合在美术资产尚未就绪时" +
-                "先看画面感觉 —— 布局、镜头、动作都已经由 proxy 定下，" +
-                "需要试的只是画风。",
-            en: "One layout and camera move, many looks. Useful before art assets exist: " +
-                "layout, camera, and motion are already fixed by the proxy, so the only " +
-                "variable left is style.",
+            zh: "在布局与运镜保持不变的条件下渲染不同外观。" +
+                "适用于美术资产尚未就绪的阶段：布局、相机与运动已由 proxy 给定，" +
+                "所需探索的仅是画风。",
+            en: "Renders distinct appearances under a shared layout and camera trajectory. " +
+                "This is useful before art assets are available: layout, camera, and motion " +
+                "are already specified by the proxy, so style remains the only free variable.",
           },
           perPage: 1,
           layout: "centered",
@@ -597,11 +614,11 @@ window.SITE_DATA = {
           eyebrow: { zh: "应用", en: "Application" },
           title: { zh: "视频重渲染与换皮", en: "Video Re-Rendering and Restyling" },
           body: {
-            zh: "以已有视频为参考，保留布局与运动、改变外观：" +
-                "实时串流替换角色、内容或整体画风。",
-            en: "Take existing video as the reference, keep its layout and motion, and change " +
-                "the appearance — swapping a character, the content, or the overall style in " +
-                "a live stream.",
+            zh: "以已有视频为参考，在保持布局与运动的同时改变外观，" +
+                "可在实时流中替换角色、内容或整体风格。",
+            en: "Taking existing video as the reference, EdenLive preserves layout and " +
+                "motion while altering appearance, enabling real-time replacement of " +
+                "characters, content, or overall style.",
           },
           perPage: 1,
           layout: "centered",
@@ -621,10 +638,10 @@ window.SITE_DATA = {
           eyebrow: { zh: "应用", en: "Application" },
           title: { zh: "具身数据增强", en: "Embodied Data Augmentation" },
           body: {
-            zh: "把真实的人类操作视频转成机器人视角的画面，" +
-                "或替换已有第一人称视频里的物体、给它换个画风。",
-            en: "Turn real human manipulation footage into robot-view frames, or replace " +
-                "some objects or restyle existing ego video.",
+            zh: "将真实的人类操作视频转换为机器人视角，" +
+                "或替换已有第一人称视频中的物体并改变其风格。",
+            en: "Converts real human manipulation footage into a robot viewpoint, or " +
+                "replaces objects in existing egocentric video and restyles the result.",
           },
           perPage: 1,
           layout: "centered",
@@ -643,17 +660,17 @@ window.SITE_DATA = {
           type: "table",
           id: "comparison",
           eyebrow: { zh: "对比", en: "Comparison" },
-          title: { zh: "与其他路线的区别", en: "How EdenLive Differs" },
+          title: { zh: "与其他路线的区别", en: "Comparison with Related Approaches" },
           body: {
-            zh: "并非逐项优劣的评测，而是说明定位上的差别 —— " +
-                "各条路线想解决的问题本来就不同。",
-            en: "Not a scorecard — a note on positioning. These lines of work are aimed at " +
-                "different problems.",
+            zh: "下表用于说明定位上的差异，而非逐项评测优劣；" +
+                "各条路线所针对的问题本身并不相同。",
+            en: "The table below clarifies differences in positioning rather than ranking " +
+                "methods. These lines of work address distinct problems.",
           },
           columns: [
             { zh: "路线", en: "Approach" },
-            { zh: "做法", en: "How it works" },
-            { zh: "EdenLive 的差别", en: "Where EdenLive differs" },
+            { zh: "做法", en: "Mechanism" },
+            { zh: "与 EdenLive 的差异", en: "Difference from EdenLive" },
           ],
           // 这张表是说明文字，不是数字。wrap 让单元格在栏宽内折行，
           // 否则 nowrap 会把右列挤出视口，只能横着拖。
@@ -663,44 +680,36 @@ window.SITE_DATA = {
               { zh: "交互式世界模型（Lingbot World、Pixverse R 系列等）",
                 en: "Interactive world models (Lingbot World, Pixverse R, …)" },
               { zh: "以 action 或文本为条件，直接生成交互画面",
-                en: "Generate interactive frames conditioned on actions or text" },
-              { zh: "解耦状态与渲染：proxy 提供状态和交互控制，EdenLive 只负责渲染，" +
-                    "所以血条、冷却、NPC 状态和成败反馈都能维持",
-                en: "Decouples state from rendering: the proxy owns state and interaction " +
-                    "while EdenLive only renders, so health, cooldowns, NPC state, and " +
-                    "success/failure feedback all survive" },
+                en: "Generates interactive frames conditioned on actions or text" },
+              { zh: "将状态与渲染解耦：proxy 承担状态与交互控制，EdenLive 仅负责渲染，" +
+                    "因而血条、冷却、NPC 状态及成败反馈均可维持",
+                en: "Decouples state from rendering: the proxy maintains state and interaction " +
+                    "control, while EdenLive is responsible only for rendering, so that health, " +
+                    "cooldowns, NPC state, and success or failure feedback can be preserved" },
             ],
             [
               "Vidu S2",
-              { zh: "同样能做实时参考生成", en: "Also does real-time reference-driven generation" },
-              { zh: "Vidu S2 基本只支持人像场景，EdenLive 支持各种参考",
-                en: "Vidu S2 is largely limited to portrait scenes; EdenLive handles " +
-                    "references of many kinds" },
+              { zh: "同样支持实时参考驱动生成", en: "Also performs real-time reference-driven generation" },
+              { zh: "Vidu S2 主要面向人像场景，EdenLive 可处理多样的参考输入",
+                en: "Vidu S2 is largely restricted to portrait scenes, whereas EdenLive " +
+                    "handles diverse forms of reference" },
             ],
             [
-              { zh: "白模渲染（Seedance 2.5、MiniMax H3）",
-                en: "Untextured-mesh rendering (Seedance 2.5, MiniMax H3)" },
-              { zh: "以白模等高度规范的输入驱动生成",
-                en: "Driven by highly standardized input such as untextured meshes" },
-              { zh: "EdenLive 实时、长时，且不要求参考达到某种细节度或制作方式",
-                en: "EdenLive is real-time and long-horizon, and does not require the " +
-                    "reference to hit a given level of detail or pipeline" },
+              { zh: "Blockout（Seedance 2.5、MiniMax H3）",
+                en: "Blockout (Seedance 2.5, MiniMax H3)" },
+              { zh: "离线可控视频生成",
+                en: "Offline controllable video generation" },
+              { zh: "EdenLive 支持实时生成，并可接入持续的交互回路",
+                en: "EdenLive supports real-time generation and can be placed inside a live " +
+                    "interaction loop" },
             ],
             [
               "DLSS 5",
               { zh: "在既有渲染管线上做超分与插帧",
                 en: "Upscaling and frame generation on top of an existing render pipeline" },
-              { zh: "EdenLive 是生成式渲染：外观可以整体改变，不受原始资产限制",
-                en: "EdenLive is generative: the appearance can change wholesale, " +
+              { zh: "EdenLive 属于生成式渲染：外观可整体改变，不受原始资产约束",
+                en: "EdenLive is a generative renderer: appearance can be altered wholesale, " +
                     "unconstrained by the original assets" },
-            ],
-            [
-              "Meshy Mora",
-              { zh: "原理上也是实时视频画风转换",
-                en: "Also real-time video restyling in principle" },
-              { zh: "EdenLive 不限于特定几款游戏，也不要求输入是已做好纹理的游戏资产",
-                en: "EdenLive is not tied to a handful of specific games, and does not " +
-                    "require finished, textured game assets as input" },
             ],
           ],
           // 不设 highlightRows：这张表讲的是定位差别，没有「我们那一行」可高亮
@@ -713,21 +722,22 @@ window.SITE_DATA = {
           eyebrow: { zh: "限制", en: "Limitations" },
           title: { zh: "已知限制", en: "Limitations" },
           body: {
-            zh: "<p><b>细小物体的控制与稳定性。</b>参考画面里尺度很小的物体，" +
-                "其位置和形态在连续生成中容易不稳，ID 保持也更困难。</p>" +
-                "<p><b>交互延迟。</b>从用户操作到对应画面出现，目前在百毫秒级。" +
-                "对漫游和低频交互够用，高频对抗类场景会感觉到。</p>" +
-                "<p><b>记忆。</b>超出上下文窗口的内容不保证一致 —— " +
-                "离开再回到同一处时，画面细节可能和先前不同。</p>",
-            en: "<p><b>Control and stability for small objects.</b> Objects that occupy few " +
-                "pixels in the reference tend to drift in position and shape over a long " +
-                "rollout, and identity is harder to preserve.</p>" +
-                "<p><b>Interaction latency.</b> From input to the corresponding frame is " +
-                "currently in the hundreds of milliseconds — fine for exploration and " +
-                "low-frequency interaction, noticeable in fast competitive settings.</p>" +
+            zh: "<p><b>细小物体的控制与稳定性。</b>参考中占据像素较少的物体，" +
+                "其位置与形态在长时间连续生成中易发生漂移，身份保持也依旧有挑战性。</p>" +
+                "<p><b>交互延迟。</b>从用户操作到对应画面出现，目前处于百毫秒量级。" +
+                "该延迟对漫游与低频交互尚可接受，在高频对抗场景中则较为明显。</p>" +
+                "<p><b>记忆。</b>超出上下文窗口的内容不保证一致：" +
+                "离开某一位置后再返回时，画面细节可能与先前不同。</p>",
+            en: "<p><b>Control and stability of small objects.</b> Objects that occupy few " +
+                "pixels in the reference tend to drift in position and shape over long " +
+                "rollouts, and identity preservation is still promising.</p>" +
+                "<p><b>Interaction latency.</b> The delay from user input to the corresponding " +
+                "frame is currently on the order of hundreds of milliseconds. This latency is " +
+                "acceptable for exploration and low-frequency interaction, but becomes " +
+                "noticeable in high-frequency competitive settings.</p>" +
                 "<p><b>Memory.</b> Content beyond the context window is not guaranteed to " +
-                "stay consistent: leaving a spot and returning may yield different " +
-                "details.</p>",
+                "remain consistent: leaving a location and later returning may yield " +
+                "different visual details.</p>",
           },
         },
       ],
@@ -1165,8 +1175,8 @@ window.SITE_DATA = {
                 "「重置视角」回到与该缩略图对齐的参考机位；点进画面后可用 W/A/S/D 漫游。</p>",
             en: "<p>Pick a case from the thumbnails above. The two viewers below show the " +
                 "scene built from scratch by GPT-6 Astra (left) against a Mira-Scene " +
-                "reconstruction with Astra for building background (right); Mira-Scene " +
-                "delivers stronger image consistency. " +
+                "reconstruction with the background built by Astra (right); Mira-Scene " +
+                "stays more consistent with the input image. " +
                 "Each side has its own camera menu, section slider, wireframe toggle, and " +
                 "fullscreen. <em>Reset view</em> returns to the reference framing that " +
                 "matches the thumbnail; click into a view and use W/A/S/D to roam.</p>",
@@ -1346,8 +1356,8 @@ window.SITE_DATA = {
             "它生成的立体视频具备视角一致性和内在的几何理解能力。模型支持 WASD 式的相机控制" +
             "（平移、偏航、俯仰），并同时提供灵活立体模式（左右相机独立控制）" +
             "和固定基线立体模式。",
-        en: "We introduce StereoWorld, a stereo world model capable of performing exploration " +
-            "based on given initial observation, generating view-consistent stereo videos with " +
+        en: "We introduce StereoWorld, a stereo world model capable of exploration " +
+            "from a given initial observation, generating view-consistent stereo videos with " +
             "intrinsic geometric understanding. The model supports WASD-style camera controls " +
             "for translation, yaw, and pitch, with both flexible stereo (independent left/right " +
             "camera control) and fixed-baseline stereo modes.",
@@ -1494,7 +1504,7 @@ window.SITE_DATA = {
             alt: { zh: "蒸馏过程的注意力掩码", en: "Attention mask in distillation" },
             caption: {
               zh: "蒸馏过程中的注意力掩码配置。",
-              en: "Attention mask configuration in distillation process.",
+              en: "Attention mask configuration in the distillation process.",
             },
             width: "30rem",
           },
@@ -1512,8 +1522,8 @@ window.SITE_DATA = {
           body: {
             zh: "给定一段固定的参考视频，生成对应的另一个视角。<br>" +
                 "每段片段依次为：参考 | 视角 1 | 视角 2。",
-            en: "Given a fixed reference video, generate the corresponding another view. <br> " +
-                "Each clip shows: reference | View 1 | View 2.",
+            en: "Given a fixed reference video, generate the corresponding view from another " +
+                "camera.<br>Each clip shows: reference | View 1 | View 2.",
           },
           // 2-fixed：这些片段本身已经是三路并排拼接，塌成一列会看不清
           perPage: 2,
