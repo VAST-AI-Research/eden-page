@@ -251,7 +251,7 @@
   function renderAuthors(p) {
     const frag = document.createDocumentFragment();
     if (Array.isArray(p.authors) && p.authors.length) {
-      const names = p.authors.map((a) => {
+      const names = p.authors.map((a, i) => {
         const sup = [
           ...(a.affil || []).map(String),
           ...(a.note ? [t(a.note)] : []),
@@ -262,19 +262,29 @@
         const nameHTML = a.bold ? `<strong>${esc(t(a.name))}</strong>` : esc(t(a.name));
         const inner = `${nameHTML}${sup ? `<sup>${esc(sup)}</sup>` : ''}`;
         const name = a.url ? `<a href="${esc(a.url)}" target="_blank" rel="noopener">${inner}</a>` : inner;
+        /* 逗号放进 .author 里面，整块 nowrap（样式在 css）：一个人的名字、
+         * 上标和后面那个逗号永远在同一行，换行只发生在人与人之间的空格上。
+         * 逗号留在名字这一侧，否则它会单独掉到下一行的行首。 */
+        const sep = i < p.authors.length - 1 ? '<span aria-hidden="true">,</span>' : '';
         // breakBefore：作者名单在这个名字前硬换行。给一行排不下的长名单用，
         // 只在数据里显式标了才生效，别的论文不受影响。
-        return `${a.breakBefore ? '<br class="author-break" aria-hidden="true">' : ''}${name}`;
+        return `${a.breakBefore ? '<br class="author-break" aria-hidden="true">' : ''}`
+          + `<span class="author">${name}${sep}</span>`;
       });
-      frag.append(el('div', { class: 'authors' }, names.join('<span aria-hidden="true">, </span>')));
+      frag.append(el('div', { class: 'authors' }, names.join(' ')));
     }
     if (Array.isArray(p.affiliations) && p.affiliations.length) {
       const list = p.affiliations
         .map((a, i) => {
-          // 机构可以是字符串，也可以是 { name, url }。url 给了才变成链接，
-          // 新标签页打开，和作者名字的链接同一套。
-          const name = (a && typeof a === 'object') ? a.name : a;
-          const url = (a && typeof a === 'object') ? a.url : '';
+          /* 机构有三种写法：纯字符串、{zh, en} 双语串、{ name, url }（name 本身
+           * 也可以是双语对象）。url 给了才变成链接，新标签页打开，和作者名字
+           * 的链接同一套。
+           * 判据是「有没有 name 键」而不是「是不是对象」—— 只看 typeof 的话
+           * {zh, en} 会被当成 { name, url } 去取 a.name，取到 undefined，
+           * 机构名就整个渲染成空（香港大学 / 字节跳动 Pico 都是这么丢的）。 */
+          const hasName = a && typeof a === 'object' && 'name' in a;
+          const name = hasName ? a.name : a;
+          const url = hasName ? (a.url || '') : '';
           const text = esc(t(name));
           const body = url
             ? `<a href="${esc(url)}" target="_blank" rel="noopener">${text}</a>`
@@ -288,17 +298,32 @@
     return frag;
   }
 
+  /* 链接按钮行。
+   * href 还是占位的 "#"（素材/论文没放出来）就渲染成不可点的 <span>，
+   * 不是 <a> —— 点了跳回首页、或者让人以为有东西可看，都比没按钮更糟。
+   * 实心那只黑按钮给**第一个真的能点**的链接：EdenLive 的 Paper 是占位，
+   * 黑色就落到 Code 上；别的论文第一个就是 arXiv，和原来一样。 */
   function renderLinkRow(links = []) {
     if (!links.length) return null;
     const row = el('div', { class: 'link-row' });
-    links.forEach((l, i) => {
-      const a = el('a', {
-        class: `btn${i === 0 ? '' : ' btn--ghost'}`,
-        href: l.href || '#',
-        target: /^https?:/.test(l.href || '') ? '_blank' : null,
-        rel: /^https?:/.test(l.href || '') ? 'noopener' : null,
-      }, `${icon(l.icon)}<span>${esc(t(l.label))}</span>`);
-      row.append(a);
+    let primaryTaken = false;
+    links.forEach((l) => {
+      const href = l.href || '';
+      const inner = `${icon(l.icon)}<span>${esc(t(l.label))}</span>`;
+      if (!href || href === '#') {
+        row.append(el('span', {
+          class: 'btn btn--ghost btn--disabled', 'aria-disabled': 'true',
+        }, inner));
+        return;
+      }
+      const external = /^https?:/.test(href);
+      row.append(el('a', {
+        class: `btn${primaryTaken ? ' btn--ghost' : ''}`,
+        href,
+        target: external ? '_blank' : null,
+        rel: external ? 'noopener' : null,
+      }, inner));
+      primaryTaken = true;
     });
     return row;
   }

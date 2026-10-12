@@ -139,10 +139,9 @@ a:hover { color: var(--text); }
 /* ---- hero：去掉紫青光晕和网格，视频条改为正文下方的作品带 ---- */
 .hero__aurora, .hero__grid, .hero__noise { display: none; }
 
-.hero__title {
-  letter-spacing: -0.035em;
-  font-weight: 500;
-  line-height: 1.14;
+.hero__title, .hero__subtitle, .hero__venue, .hero__venue-note, .authors, .affils,
+.author-notes, .link-row, .tldr, .teaser, .stats {
+  animation: none;
 }
 .hero__title em { color: #0b0b0c; font-style: normal; }
 /* 详情页长标题。1080p 全屏时正文内容宽约 1108px（1180 栏减去内距，
@@ -172,6 +171,24 @@ a:hover { color: var(--text); }
   color: #0b0b0c;
   text-shadow: none;
 }
+/* 一个人的名字、上标和后面那个逗号不拆行（见 app.js 的 renderAuthors）。
+   里层的 <a>/<strong> 也要跟着 nowrap —— 只给外层的话，浏览器仍会在
+   链接内部的连字符处断开（Yang-Tian Sun 会断成 Yang- / Tian Sun）。 */
+.author, .author a, .author strong { white-space: nowrap; }
+
+/* 占位链接（href 还是 "#"）：渲染成不可点的 ghost 按钮，见 renderLinkRow */
+.btn--disabled {
+  cursor: default;
+  opacity: .45;
+  background: #fff;
+  border-color: #e2e2e0;
+  color: #717176;
+}
+.btn--disabled:hover {
+  background: #fff;
+  border-color: #e2e2e0;
+  color: #717176;
+}
 .hero__band :is(.authors, .authors a, .authors strong) {
   color: #333336; text-shadow: none; font-size: 14px;
 }
@@ -197,7 +214,12 @@ a:hover { color: var(--text); }
   letter-spacing: -0.01em;
   margin: 0 auto 28px;
 }
-.tldr { margin-top: 0; max-width: 800px; }
+.hero__title {
+  letter-spacing: -0.035em;
+  font-weight: 500;
+  line-height: 1.14;
+}
+.tldr { margin-top: 56px; max-width: 800px; }
 .tldr__text {
   font-size: clamp(20px, 2vw, 27px);
   line-height: 1.5;
@@ -241,6 +263,18 @@ a:hover { color: var(--text); }
 /* ---- 媒体与证据 ---- */
 .teaser { margin-top: 38px; }
 .frame { border-radius: 3px; box-shadow: none; }
+
+/* 视频按自己的真实比例排、不裁。style.css 给没有 poster 的 video 写死了
+   aspect-ratio: 1280/704 + object-fit: cover（为了在元数据回来之前不塌成
+   一条线），但轮播里的素材比例各不相同 —— MultiLive 是 4 视角拼接、
+   StereoWorld 是左右眼并排，按 1280/704 盖上去就被裁掉上下两条。
+   改成只给一个 min-height 兜底：元数据一回来，video 自己的固有比例就接管。 */
+.frame > video:not([poster]) {
+  aspect-ratio: auto;
+  object-fit: contain;
+  min-height: 0;
+}
+.carousel .frame > video { object-fit: contain; }
 .caption {
   text-align: left;
   max-width: none;
