@@ -1,6 +1,7 @@
 # EdenLive clip codes
 
 R2 桶 eden-page-assets 里 `assets/edenlive/clips/<code>.mp4` 与本地 `artifacts/` 原文件的对照。
+页面实际用的同短码 `.avif` 动图（宣传片除外）在仓库的 `assets/edenlive/clips/` 下。
 页面只引用短码；原文件名留在本地，不上传。
 
 | code | local |

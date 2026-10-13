@@ -21,6 +21,7 @@ project_page/
 │   ├── favicon.svg       # 标签页图标（logo 的 16px 版，index.html 里单独引用）
 │   │                     # （列表卡片缩略图不在这里：是生成的示意图，托管在
 │   │                     #   R2 的 assets/thumbs/，见「缩略图」一节）
+│   ├── edenlive/clips/*.avif # EdenLive 的 60 张动图（条带 + 四节应用），见「素材托管」
 │   └── placeholder/*.svg # 占位素材，真素材进来后应逐步删除
 └── README.md             # 面向使用者的替换/部署说明
 ```
@@ -207,6 +208,36 @@ StereoWorld 的 5 个视频 section 全是 `carousel`。
 放大用浏览器自带全屏。只够一页时自动隐藏翻页控件。
 视频是懒加载的：只有当前页和相邻页会真的下载，翻出视野的会 `pause()`，
 不然几十个视频一起解码，风扇直接起飞。
+
+**轮播里的动图**：`items[].src` 也可以是动态图（`.avif` / `.gif`），EdenLive 的
+四节应用（Interactive Game Preview / Scene and Animation Preview / Video Re-Rendering
+and Restyling / Embodied Data Augmentation）共 33 张，都是整段转出来的 AVIF。
+和视频样例的区别：
+
+- 暂停按钮照样有，对动图来说暂停 = 定格（和顶部条带共用 `freezeAnim()`）。
+  图要完整下完才定得了格，所以下完之前按钮藏着。
+- **只有当前页会下载，相邻页不预热。** 视频的预热只取元数据，图一填 `src` 就是
+  下整个文件（一张几 MB），会和当前页抢带宽。翻走时没下完的图会被撤掉 `src`，
+  翻回来重新要。
+- 下完之前格子是骨架（frame 自己按 1280/704 占位，图到了交给图自己的比例）。
+  几 MB 的动图是边下边播的，第一帧一到就把骨架盖住。
+- `prefers-reduced-motion` 下载过程中图是藏着的，下完直接定格。
+- 判断靠扩展名（`isAnim()`），所以**静态图别用 `.avif` / `.gif` 放进轮播**，
+  不然会多出一个没用的暂停按钮。
+
+转换命令（源是 R2 上同名 `.mp4`，产物放进仓库的 `assets/edenlive/clips/`）：
+
+```bash
+# 整段、原分辨率、原帧率。CRF 38 不封码率：封顶会让画面复杂的片段整块糊成色块，
+# 实测封在 1.5Mbps 时最差那一帧 VMAF 只有 30。现在 33 张 VMAF 平均 91.8~99.7，
+# 共 148MB（原视频 559MB）。
+ffmpeg -i <短码>.mp4 -vf format=yuv420p -c:v libsvtav1 -crf 38 -preset 5 -g 240 \
+  -an -loop 0 -f avif <短码>.avif
+```
+
+验 VMAF 时别被片尾的最低分吓到：有的原片最后一两帧时长不规整（停留 2~4 个帧长），
+AVIF 按恒定帧率会补出重复帧，逐帧比对时片尾就错开了，最低分能掉到 20 多。
+看「最差 1%」，片尾的低分要抽帧肉眼对一下（2819fbee、65e47fb6 就是这样，画面没问题）。
 
 `gallery` 的 `columns` 写数字（`2/3/4`）时是 `auto-fit`，实际列数由容器宽度决定；
 写 `"2-fixed"` 则宽屏固定两列、660px 以下塌成一列。后者留给**本身已是多路并排拼接**
@@ -420,12 +451,21 @@ for s in (34,26,16):
 （`assets/<项目>/...`），所以那两个 dataset（`huanngzh/page-assets`、
 `ToRealU/eden-page-assets`）现在只是原件备份，页面不再引用。
 
+**例外：EdenLive 的 60 张 AVIF 动图在仓库里**（`assets/edenlive/clips/`，共 153MB，
+最大一张 12MB），由 `data/projects.js` 的 `EL` 常量指向，跟站点一起部署、同源加载，
+不受 r2.dev 限流。视频转成动图之后才小到能进 git；原视频、宣传片、三维模型仍在 R2。
+往仓库里放动图守住几条线：单张别超过 25MiB（Cloudflare Workers 静态资源的上限）、
+GitHub 单文件 50MiB 起报警，整站要留在 GitHub Pages 的 1GB 以内。
+**重新生成会让历史变胖**：每覆盖一次，旧的那 153MB 都永久留在 git 历史里，
+所以调参数先在本地挑好，定稿了再提交。
+
 **为什么从 HF 搬走**（2026-10）：每个 `resolve/main` 请求都要先 302 到美国的 CDN，
 跳转地址带签名、每次都不一样，浏览器缓存不住，回访也要全量重下；大陆还直连不上。
 
 公开地址写在三处，**换域名时三处一起改**：
 
-- `data/projects.js` 顶部的 `ASSETS` 常量（`SW` / `MS` / `TH` / `ML` / `EL` 都从它派生）
+- `data/projects.js` 顶部的 `ASSETS` 常量（`SW` / `MS` / `TH` / `ML` 都从它派生，
+  EdenLive 的宣传片也直接拼它；`EL` 指的是仓库里的动图，和它无关）
 - `pages/ccm-workflow/data/manifest.json` 里的完整地址（JSON 引用不了常量）
 - `index.html` 的 `og:image` 兜底值（爬虫要绝对地址）
 
@@ -472,7 +512,8 @@ hero 三层背景：`.hero__aurora`（一团静态淡色晕，不动画）/ `.he
 **视频背景条**：详情页的条目在数据里写 `backdrop`，标题/作者/按钮就压在视频上。
 EdenLive 在用。两种形态：
 
-- `backdrop.rows`：**两行横向滚动的视频条带**，每行一个 clip 数组。EdenLive 用这个。
+- `backdrop.rows`：**两行横向滚动的动态图条带**，每行一个动图地址的数组
+  （不能填视频，见下面「滚动条带」）。EdenLive 用这个。
 - `backdrop.src`：单个铺满的素材（图或视频）。
 
 由 `heroFilm()` 建 DOM、`initHeroStrip()` 驱动滚动，和上面三层**互斥** ——
@@ -500,19 +541,36 @@ EdenLive 在用。两种形态：
 - **每一格始终循环播自己那一段**。格子滚出视野就被搬到队列另一头，
   所以回收**必须发生在视野外**：正向（往左跑）回收首格 `append`，
   反向（往右跑）回收末格 `prepend`。两个方向搞成同一种，
-  反向行就会每隔十几秒把一个**正在看的**格子抽走，看起来像「这一格的视频
-  播完换成了另一段」。曾经就是这个 bug。
+  反向行就会每隔十几秒把一个**正在看的**格子抽走，看起来像「这一格的画面
+  播着忽然换成了另一段」。曾经就是这个 bug。
 - 同理，懒加载判定里的 `shift` 要和 transform 用同一个值
   （反向行是 `offset - stride`），否则可见范围整体偏一格。
-- 视频**懒加载**：只有滚到视野附近才填 `src`，离开就 `pause()`。
-  EdenLive 那 26 个 clip 合计约 330MB，全量预载等于把首屏炸掉。
-- 条带在视口外 / 切到别的标签页 / 用户按了暂停时，rAF 和所有视频一起停。
-  `prefers-reduced-motion` 默认就是暂停态。右下角 `.hero__strip-toggle`
-  让用户掐掉动效和流量。
-- 切走页面时 `heroStripStop()` 会 `removeAttribute('src') + load()`，
-  不然切出去之后还有十几路解码在跑。
-- 格子里的视频用 `object-fit: contain` 而不是 `cover`：这些是生成结果，
+- **每格是一张动态图（AVIF），不是 `<video>`。** 原来是 27 路 832×480、约 4Mbps
+  的视频同时播，带宽供不上，慢网下只看到一排转不出来的空格。现在每格是同名 clip
+  前 12 秒（5 秒 wipe + 7 秒生成画面）做的循环动图，平均 190KB，27 张共 5MB。
+- **懒加载 + 骨架**：只有滚到视野附近才填 `src`。图到之前格子是骨架
+  （`.hero__tile` 的呼吸动画，只动透明度，不做渐变扫光），到了打 `data-loaded` 淡入。
+  加载失败先重试一次（跨境链路偶尔把传输断在半截），再失败才打 `data-failed` 留空。
+- **暂停要自己定格**：动图没有暂停 API，`freezeAnim()` 把它画到一张 canvas 上盖住，
+  img 由 CSS 藏掉。Chrome 的 `drawImage` 对动图永远画第一帧，所以定住的是开头
+  那帧 wipe，不是当前帧。`prefers-reduced-motion` 默认就是暂停态，图一到就定格，
+  一帧都不会动。右下角 `.hero__strip-toggle` 让用户掐掉动效和流量。
+- 条带在视口外 / 切到别的标签页 / 用户按了暂停时，rAF 停。
+- 切走页面时 `heroStripStop()` 会 `removeAttribute('src')`，没下完的图不再接着下。
+- 格子里的图用 `object-fit: contain` 而不是 `cover`：这些是生成结果，
   裁掉边缘就看不出画面在干什么了。
+- **动图怎么生成**（源是 R2 上同名的 `.mp4`，产物放进仓库的 `assets/edenlive/clips/`）：
+
+  ```bash
+  # 500×288 = 一格 253×146 的 2 倍屏尺寸。24fps 的源减半成 fps=12，16fps 的保持 16
+  # （非整数倍抽帧会一顿一顿）。mbr=180 是码率封顶：不封的话细节多的片段会到 1.2MB。
+  ffmpeg -t 12 -i <短码>.mp4 -vf "fps=16,scale=-2:288:flags=lanczos,format=yuv420p" \
+    -c:v libsvtav1 -crf 44 -preset 4 -g 300 -svtav1-params mbr=180 -an -loop 0 -f avif <短码>.avif
+  ```
+
+  选 AVIF 是实测出来的：同一段 8 秒，GIF 约 5MB、动态 WebP 约 500KB、AVIF 约 100KB。
+  动态 AVIF 要 Chrome 85+ / Firefox 113+ / Safari 16.4+，和全站 `color-mix()` 的
+  基线基本一致；更老的 Safari 只显示第一帧。
 - 这种 hero 的文字颜色**写死浅色、不跟随深浅主题**，因为背景是自带亮度的画面。
   所以 `@media print` 里除了藏掉 `.hero__film`，还要把这些文字改回 `#000`，
   不然打印出来是白底白字。加新的文字元素到这个 hero 里时记得同步那两处。
@@ -606,6 +664,8 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
 - **EdenLive 的 61 个视频**（条带 27 个 + 宣传片 + 四节应用 33 个）在 R2 的
   `assets/edenlive/clips/` 下，由 `data/projects.js` 顶部的 `EL` 常量指向；
   短码和 `artifacts/` 原文件名的对照在 `data/edenlive-clips.md`。
+  除了宣传片 teaser，条带 27 个和四节应用 33 个，页面实际用的都是同短码的
+  `.avif` 动图，在仓库的 `assets/edenlive/clips/` 里；R2 上的 `.mp4` 只留作生成源。
   两张流程图要照 `artifacts/.../Images_attachments/` 里那两张（`-realtime-v4` 和
   `-interaction`）重画成站点配色，不要直接用原图 —— 它们是绿色系，和全站的紫/青不搭。
   另外文案里 `>24 fps`、分钟级、百毫秒级延迟这几个数字是对外口径的下限，

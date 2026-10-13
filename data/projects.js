@@ -17,7 +17,7 @@
 
 /* 页面素材（视频、图片、三维模型）都放在 Cloudflare R2 的 eden-page-assets 桶里
  * （Vast 账号，APAC），不进本仓库。桶里的 key 和原先 HF dataset 里的路径一一对应，
- * 都以 assets/ 开头。
+ * 都以 assets/ 开头。唯一的例外是 EdenLive 的 60 张动图，在仓库里（见下面 EL 的注释）。
  *
  * 2026-10 从 HuggingFace（huanngzh/page-assets、ToRealU/eden-page-assets）搬过来：
  * HF 每个请求都要先 302 到美国的 CDN，跳转地址每次都不一样（浏览器缓存不住），
@@ -65,19 +65,24 @@ const TH = ASSETS + 'assets/thumbs/';
 /* MultiLive 的 19 个页面素材（13 段视频、5 张图片、1 份 PDF，约 80 MiB）。 */
 const ML = ASSETS + 'assets/multilive/';
 
-/* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 985MB）在 assets/edenlive/clips/ 下。
- * 文件名是随机短码，不带分辨率和模型名。短码与本地 artifacts/ 原文件名的
- * 对照在 data/edenlive-clips.md。
+/* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 985MB）在 R2 的
+ * assets/edenlive/clips/ 下。文件名是随机短码，不带分辨率和模型名。短码与本地
+ * artifacts/ 原文件名的对照在 data/edenlive-clips.md。
  *
- * 背景条带 27 个 clip、832×480、各约 30s。懒加载：只有滚到视野附近的格子才下载。
+ * 页面上除了宣传片 teaser，用的都不是这些视频本身，而是同名的 <短码>.avif 动图，
+ * 放在仓库的 assets/edenlive/clips/ 下（60 张共 153MB，和站点一起部署，同源加载）：
+ *   作品带 27 格：clip 前 12 秒（5 秒 wipe + 7 秒生成画面）缩到 500×288，每张约 190KB。
+ *     27 路 832×480、约 4Mbps 的视频同时播，带宽供不上。生成命令见 CLAUDE.md「滚动条带」。
+ *   四节应用轮播 33 张：整段转，见 app-game 的注释。
+ * R2 上的 .mp4 页面已不再引用，留着当重新生成动图的源。
  *
  * 条带的挑选（本地目录 edenlive-wipe-480 里实际有 31 个，这里只用 27 个）：
  * 三个 elda 文件夹（025/026/028）内容高度相似，只留 025 的 wan21；
  * 两个火箭发射（082/084）只留 082。相似的格子挨着滚过去会看成同一段在重播。
  * 后来换过一批：拿掉 doodle-jump、elda 的 wan22、合金弹头、光剑切箱子、草原疾驰，
  * 补上运河小船 / 提灯划小船、闪身步 / 地下遗迹 / 火星车漫游，外加 025 的 wan21。
- * 奥特曼飞行小游戏渲过但不稳定，没有放进条带。第一行 13 格、第二行 14 格。 */
-const EL = ASSETS + 'assets/edenlive/clips/';
+ * 奥特曼飞行小游戏渲过但不稳定，没有放进条带。第一行 12 格、第二行 15 格。 */
+const EL = 'assets/edenlive/clips/';   // 仓库里的动图，相对 index.html
 
 window.SITE_DATA = {
   /* ---------------------------------------------------------------- 站点级 */
@@ -207,45 +212,46 @@ window.SITE_DATA = {
         "interactive world",
       ],
 
-      /* hero 背景：两行横向滚动的视频条带，标题和按钮压在上面
-       * 第一行 13 格、第二行 14 格，共 27 个 clip。
+      /* 标题下方的作品带：两行横向滚动的动态图
+       * 第一行 12 格、第二行 15 格，共 27 张。
        * 两行方向相反，视觉上更像「一片正在跑的素材」而不是一条传送带。
        *
-       * 纯装饰：aria-hidden、不给控制条、静音循环，并且是懒加载的 ——
-       * 只有滚到视野附近的格子才真正下载。读者要看的是下面的 teaser。
+       * 每格是同名 clip 前 12 秒做成的动态 AVIF（见文件顶部 EL 的注释），不是视频。
+       * 纯装饰：aria-hidden，并且是懒加载的 —— 只有滚到视野附近的格子才下载，
+       * 没到的显示骨架。读者要看的是下面的 teaser。
        * 右下角有个暂停按钮（动效 + 流量都能被用户掐掉）。 */
       backdrop: {
         rows: [
           [
-            EL + "c901fab6.mp4",
-            EL + "f4bb3f37.mp4",
-            EL + "afb26e68.mp4",
-            EL + "4c37c8d1.mp4",
-            EL + "34bd577a.mp4",
-            EL + "948449bc.mp4",
-            EL + "ca38f196.mp4",
-            EL + "6d9632a9.mp4",
-            EL + "1cbd0d35.mp4",
-            EL + "c6e8434c.mp4",
-            EL + "0890969e.mp4",
-            EL + "71585601.mp4",
+            EL + "c901fab6.avif",
+            EL + "f4bb3f37.avif",
+            EL + "afb26e68.avif",
+            EL + "4c37c8d1.avif",
+            EL + "34bd577a.avif",
+            EL + "948449bc.avif",
+            EL + "ca38f196.avif",
+            EL + "6d9632a9.avif",
+            EL + "1cbd0d35.avif",
+            EL + "c6e8434c.avif",
+            EL + "0890969e.avif",
+            EL + "71585601.avif",
           ],
           [
-            EL + "8da956a9.mp4",
-            EL + "4d69026d.mp4",
-            EL + "075191ee.mp4",
-            EL + "d0a94370.mp4",
-            EL + "cffd5edf.mp4",
-            EL + "8dd568c5.mp4",
-            EL + "2cd581b1.mp4",
-            EL + "5c88a24a.mp4",
-            EL + "e2521235.mp4",
-            EL + "ee67545b.mp4",
-            EL + "00282906.mp4",
-            EL + "801ad06f.mp4",
-            EL + "a4195340.mp4",
-            EL + "92849ce6.mp4",
-            EL + "7eb84745.mp4",
+            EL + "8da956a9.avif",
+            EL + "4d69026d.avif",
+            EL + "075191ee.avif",
+            EL + "d0a94370.avif",
+            EL + "cffd5edf.avif",
+            EL + "8dd568c5.avif",
+            EL + "2cd581b1.avif",
+            EL + "5c88a24a.avif",
+            EL + "e2521235.avif",
+            EL + "ee67545b.avif",
+            EL + "00282906.avif",
+            EL + "801ad06f.avif",
+            EL + "a4195340.avif",
+            EL + "92849ce6.avif",
+            EL + "7eb84745.avif",
           ],
         ],
       },
@@ -280,9 +286,10 @@ window.SITE_DATA = {
         en: "EdenLive will be open-sourced by 2026.10.18!",
       },
 
-      /* 宣传片。TL;DR 之后、摘要之前的那一段。 */
+      /* 宣传片。TL;DR 之后、摘要之前的那一段。
+       * 117MB、带声音，仍是视频、仍在 R2 —— EL 指的是仓库里的动图目录，这里不能用。 */
       teaser: {
-        src: EL + "e64ab20b.mp4",
+        src: ASSETS + "assets/edenlive/clips/e64ab20b.mp4",
       },
 
       /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
@@ -554,16 +561,19 @@ window.SITE_DATA = {
           },
           perPage: 1,
           layout: "centered",
+          // 动图样例：同名 clip 整段（30 秒、1280×704、24fps）转的循环 AVIF，
+          // 9 张共 60MB，原视频是 185MB。转换命令见 CLAUDE.md 的「轮播里的动图」。
+          // 动图没有控制条，所以不写 controls（写了也不起作用）。
           items: [
-            { src: EL + "bafe32b9.mp4", controls: true },
-            { src: EL + "cf2421f7.mp4", controls: true },
-            { src: EL + "edf33f08.mp4", controls: true },
-            { src: EL + "56ac4b6b.mp4", controls: true },
-            { src: EL + "e60f6083.mp4", controls: true },
-            { src: EL + "1c70aa33.mp4", controls: true },
-            { src: EL + "bb6c2841.mp4", controls: true },
-            { src: EL + "e7d6e8a9.mp4", controls: true },
-            { src: EL + "8811e6ec.mp4", controls: true },
+            { src: EL + "bafe32b9.avif" },
+            { src: EL + "cf2421f7.avif" },
+            { src: EL + "edf33f08.avif" },
+            { src: EL + "56ac4b6b.avif" },
+            { src: EL + "e60f6083.avif" },
+            { src: EL + "1c70aa33.avif" },
+            { src: EL + "bb6c2841.avif" },
+            { src: EL + "e7d6e8a9.avif" },
+            { src: EL + "8811e6ec.avif" },
           ],
         },
         {
@@ -582,20 +592,21 @@ window.SITE_DATA = {
           },
           perPage: 1,
           layout: "centered",
+          // 和上一节一样是整段转的动图（见 app-game 的注释）
           items: [
-            { src: EL + "ae454d05.mp4", controls: true },
-            { src: EL + "2819fbee.mp4", controls: true },
-            { src: EL + "65e47fb6.mp4", controls: true },
+            { src: EL + "ae454d05.avif" },
+            { src: EL + "2819fbee.avif" },
+            { src: EL + "65e47fb6.avif" },
             // 新增的成片：DMD 720p 优先，wan21 14b 480p 排在后面
-            { src: EL + "efd72737.mp4", controls: true },
-            { src: EL + "de031217.mp4", controls: true },
-            { src: EL + "33bb38e6.mp4", controls: true },
-            { src: EL + "096ca570.mp4", controls: true },
-            { src: EL + "3ebf1fa9.mp4", controls: true },
-            { src: EL + "3d9a9e41.mp4", controls: true },
-            { src: EL + "67ead996.mp4", controls: true },
-            { src: EL + "32b05736.mp4", controls: true },
-            { src: EL + "537bd181.mp4", controls: true },
+            { src: EL + "efd72737.avif" },
+            { src: EL + "de031217.avif" },
+            { src: EL + "33bb38e6.avif" },
+            { src: EL + "096ca570.avif" },
+            { src: EL + "3ebf1fa9.avif" },
+            { src: EL + "3d9a9e41.avif" },
+            { src: EL + "67ead996.avif" },
+            { src: EL + "32b05736.avif" },
+            { src: EL + "537bd181.avif" },
           ],
         },
         {
@@ -613,13 +624,14 @@ window.SITE_DATA = {
           },
           perPage: 1,
           layout: "centered",
+          // 和 app-game 一样是整段转的动图
           items: [
-            { src: EL + "c7560051.mp4", controls: true },
-            { src: EL + "1515283e.mp4", controls: true },
-            { src: EL + "60e3c4d9.mp4", controls: true },
-            { src: EL + "6becd8f3.mp4", controls: true },
-            { src: EL + "72a254b9.mp4", controls: true },
-            { src: EL + "2f8eeb65.mp4", controls: true },
+            { src: EL + "c7560051.avif" },
+            { src: EL + "1515283e.avif" },
+            { src: EL + "60e3c4d9.avif" },
+            { src: EL + "6becd8f3.avif" },
+            { src: EL + "72a254b9.avif" },
+            { src: EL + "2f8eeb65.avif" },
           ],
         },
         {
@@ -636,13 +648,14 @@ window.SITE_DATA = {
           },
           perPage: 1,
           layout: "centered",
+          // 和 app-game 一样是整段转的动图
           items: [
-            { src: EL + "748848e0.mp4", controls: true },
-            { src: EL + "ef7f3a46.mp4", controls: true },
-            { src: EL + "80ac72ba.mp4", controls: true },
-            { src: EL + "1fb017f8.mp4", controls: true },
-            { src: EL + "29e08b3c.mp4", controls: true },
-            { src: EL + "5a96da28.mp4", controls: true },
+            { src: EL + "748848e0.avif" },
+            { src: EL + "ef7f3a46.avif" },
+            { src: EL + "80ac72ba.avif" },
+            { src: EL + "1fb017f8.avif" },
+            { src: EL + "29e08b3c.avif" },
+            { src: EL + "5a96da28.avif" },
           ],
         },
 

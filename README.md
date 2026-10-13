@@ -359,8 +359,12 @@ displacement. Please keep new styles in that key — details in [CLAUDE.md](CLAU
 
 Small images (a few hundred KB — thumbnails, teaser posters) go straight into
 `assets/`. **Do not put bulk video or 3D models in git** — it bloats the repo, and
-GitHub Pages caps files at 100MiB and the whole site at 1GB. Those go to
-Cloudflare R2:
+GitHub Pages caps files at 100MiB and the whole site at 1GB.
+
+Animated AVIFs converted from video are the exception: they usually end up a few MB
+each, so they can go straight into `assets/` and deploy with the site (EdenLive's 60
+live in `assets/edenlive/clips/`). Keep each one under 25MiB; see "轮播里的动图" in
+CLAUDE.md for how to make them. Everything else large goes to Cloudflare R2:
 
 ```
 R2 bucket eden-page-assets (Vast account)  →  assets/<project>/...

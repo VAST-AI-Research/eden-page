@@ -203,7 +203,10 @@ a:hover { color: var(--text); }
 }
 .hero__film-shade { display: none; }
 .hero__strip { gap: 8px; padding: 0; }
-.hero__tile { border-radius: 2px; background: #f5f5f2; }
+/* 骨架色要比作品带的底（#f5f5f2）深一档才看得出来；图到了（或坏了）退回底色，
+   contain 留出的边就不显眼 */
+.hero__tile { border-radius: 2px; background: #e2e2e0; }
+.hero__tile:is([data-loaded], [data-failed]) { background: #f5f5f2; }
 .hero__strip-toggle { bottom: 16px; right: 24px; }
 .hero__below { padding-top: 58px; }
 

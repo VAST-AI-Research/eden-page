@@ -176,6 +176,8 @@
   };
 
   const isVideo = (src = '') => /\.(mp4|webm|mov|m4v)(\?|#|$)/i.test(src);
+  // 轮播里按动图处理（给暂停按钮）的扩展名。静态图别用这两种格式放进轮播
+  const isAnim = (src = '') => /\.(avif|gif)(\?|#|$)/i.test(src);
 
   /* ----------------------------------------------------------------- icons */
   const ICONS = {
@@ -222,7 +224,7 @@
    * 但可以显式传 controls: true 覆盖 —— teaser 和轮播里的样例都这么做，
    * 那些是页面主内容，读者需要能暂停和拖进度条。
    * 传 lazy: true 则只把地址记在 data-src 上、先不加载，等轮播把它切进视野
-   * 再由 initCarousel 填上 src（44 个视频同时预载会把 HF CDN 打满）。 */
+   * 再由 initCarousel 填上 src（44 个视频同时预载会把 HF CDN 打满）。图片同理。 */
   function renderMedia(src, {
     poster, autoplay = true, controls, alt = '', lazy = false, loop = true,
   } = {}) {
@@ -245,7 +247,11 @@
       }
       return v;
     }
-    return el('img', { src, alt, loading: 'lazy', decoding: 'async' });
+    const img = el('img', {
+      src: lazy ? null : src, alt, loading: lazy ? null : 'lazy', decoding: 'async',
+    });
+    if (lazy) img.dataset.src = src;
+    return img;
   }
 
   function renderAuthors(p) {
@@ -371,7 +377,7 @@
    * 给 EdenLive 这类「一眼看到效果」的项目用，论文页一般不配。
    *
    * 两种形态：
-   *   backdrop.rows  两行横向滚动的视频条带
+   *   backdrop.rows  两行横向滚动的动态图条带（每项是一张动图的地址，不能填视频）
    *   backdrop.src   单个铺满的素材（图或视频）
    *
    * 和 heroBackdrop() 的三层是互斥的：配了 backdrop 就不画网格和晕光，
@@ -414,18 +420,39 @@
     return layer;
   }
 
-  /** 条带里的一格。src 先放 data-src，由 initHeroStrip() 懒加载。 */
+  /** 条带里的一格：一张动态图。src 先放 data-src，由 initHeroStrip() 懒加载。
+   *  图到之前这一格是骨架（.hero__tile 的呼吸动画），到了打上 data-loaded 再淡入。 */
   function heroTile(src) {
     const tile = el('div', { class: 'hero__tile' });
-    const v = el('video', {
-      muted: true, loop: true, playsinline: true, preload: 'none',
+    const img = el('img', { alt: '', decoding: 'async' });
+    img.dataset.src = src;
+    img.addEventListener('load', () => {
+      tile.dataset.loaded = 'true';
+      // 暂停态下才到的图（比如 prefers-reduced-motion）：直接定格，一帧都不动
+      if (tile.closest('.hero__strip')?.dataset.paused === 'true') freezeAnim(tile, true);
+    }, { once: true });
+    // 跨境链路偶尔会把传输断在半截：先重试一次。还不行就让这一格留空，不要把整条带拖崩
+    img.addEventListener('error', () => {
+      if (tile.dataset.retried) { tile.dataset.failed = 'true'; return; }
+      tile.dataset.retried = 'true';
+      setTimeout(() => { if (img.isConnected) img.src = src; }, 1500);
     });
-    v.dataset.src = src;
-    v.muted = true; // 属性之外还要设 property，否则部分浏览器不让自动播
-    // 单格坏了就让它留空，不要把整条带拖崩
-    v.addEventListener('error', () => { tile.dataset.failed = 'true'; }, { once: true });
-    tile.append(v);
+    tile.append(img);
     return tile;
+  }
+
+  /* 动态图没有暂停 API。要停，就把它画到一张 canvas 上盖住（img 由 CSS 藏掉），
+   * 要动再把 canvas 拿掉。跨域图画上去只是不能回读像素，显示不受影响。
+   * 条带的格子和轮播里的动图样例共用。box 的约定：第一个子元素是 <img>，
+   * 图完整到了会打 data-loaded —— 没下完的图 drawImage 画不出东西，所以定不了格。 */
+  function freezeAnim(box, on) {
+    const still = $('canvas', box);
+    if (!on) { still?.remove(); return; }
+    if (still || !box.dataset.loaded) return;
+    const img = box.firstElementChild;
+    const c = el('canvas', { width: img.naturalWidth, height: img.naturalHeight });
+    c.getContext('2d').drawImage(img, 0, 0);
+    img.after(c);   // 紧跟在图后面：轮播里后面还有暂停按钮，不能盖住它
   }
 
   /** 返回上一层的面包屑（详情页 → 所属栏目列表页） */
@@ -828,8 +855,12 @@
           // 正中央浮出一个按钮。视频本身照常自动循环播放，按钮只是让读者能暂停。
           // 按钮的接线在 initCarousel 里。
           const v = $('video', frame);
-          if (v) {
-            v.removeAttribute('controls'); v.controls = false;
+          if (v) { v.removeAttribute('controls'); v.controls = false; }
+          // 动图样例（.avif / .gif）给同一个按钮：对它来说暂停 = 定格（freezeAnim）。
+          // frame--anim 另外挂上骨架：第一帧到之前格子在呼吸，见 css。
+          const anim = !v && isAnim(t(it.src));
+          if (anim) frame.classList.add('frame--anim');
+          if (v || anim) {
             frame.append(el('button', {
               class: 'csample__toggle', type: 'button',
               'aria-label': ui('samplePause'),
@@ -1163,16 +1194,40 @@
 
       // 样例视频的播放/暂停按钮：正中央那个，只有悬停时才看得见。
       // 状态全靠视频自己的 paused，按钮只负责切换和同步图标。
-      const syncToggle = (v) => {
-        const btn = v.parentElement?.querySelector('.csample__toggle');
-        if (!btn) return;
-        const playing = !v.paused;
+      const paintToggle = (btn, playing) => {
         btn.dataset.state = playing ? 'playing' : 'paused';
         btn.innerHTML = icon(playing ? 'pause' : 'play');
         btn.setAttribute('aria-label', ui(playing ? 'samplePause' : 'samplePlay'));
       };
+      const syncToggle = (v) => {
+        const btn = v.parentElement?.querySelector('.csample__toggle');
+        if (btn) paintToggle(btn, !v.paused);
+      };
       $$('.csample__toggle', car).forEach((btn) => {
-        const v = btn.parentElement.querySelector('video');
+        const frame = btn.parentElement;
+        const v = frame.querySelector('video');
+        if (!v) {
+          /* 动图样例：没有 <video> 可控，暂停 = 定格（freezeAnim），状态就是有没有那张 canvas。
+           * 图要完整到了才定得了格，在那之前按钮由 css 藏着。 */
+          const img = $('img', frame);
+          const frozen = () => !!$('canvas', frame);
+          btn.addEventListener('click', () => { freezeAnim(frame, !frozen()); paintToggle(btn, !frozen()); });
+          img.addEventListener('load', () => {
+            frame.dataset.loaded = 'true';
+            // reduce-motion：到了就定格，要看的人自己点播放
+            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) freezeAnim(frame, true);
+            paintToggle(btn, !frozen());
+          });
+          // 几 MB 的图在慢链路上容易断在半截：卸掉 src，还停在这一页就过会儿再要一次（最多两次）
+          img.addEventListener('error', () => {
+            img.removeAttribute('src');
+            const n = Number(img.dataset.retries || 0);
+            if (n >= 2 || frame.closest('.carousel__page') !== pages[cur]) return;
+            img.dataset.retries = String(n + 1);
+            setTimeout(() => show(cur), 1500);
+          });
+          return;
+        }
         btn.addEventListener('click', () => {
           if (!v.getAttribute('src')) return;   // 还没填 src（不在视野里）就别播
           if (v.paused) {
@@ -1231,12 +1286,17 @@
           hydrate(cur);
           hydrate(cur + 1);   // 预热下一页
           hydrate(cur - 1);
+          // 图片只填当前页，不预热：视频的相邻页只取元数据，图一填 src 就是下整个文件
+          // （动图样例一张几 MB），会和当前页抢带宽
+          $$('img[data-src]:not([src])', pages[cur]).forEach((img) => img.setAttribute('src', img.dataset.src));
         }
         pages.forEach((page, i) => {
           const on = i === cur;
           // aria-hidden + inert：读屏和 Tab 都不该进到看不见的页里
           page.setAttribute('aria-hidden', on ? 'false' : 'true');
           if (on) page.removeAttribute('inert'); else page.setAttribute('inert', '');
+          // 翻走时还没下完的图先停掉，带宽让给当前页；翻回来会重新要
+          if (!on) $$('img[data-src][src]', page).forEach((img) => { if (!img.complete) img.removeAttribute('src'); });
           $$('video', page).forEach((v) => {
             if (on) {
               // 当前页自动播。lazy 视频的 autoplay 属性是空的（渲染时还没有 src），
@@ -1661,16 +1721,18 @@
    *
    * 用 IntersectionObserver 盯 band 的下边界，不自己算 scrollY：
    * 条高是 min(760px, 100vh)，跟视口走，算出来的阈值会在 resize 后失效。 */
-  /* hero 背景条带：两行视频横向匀速滚动。
+  /* hero 背景条带：两行动态图横向匀速滚动。
    *
    * 关键取舍：
    * - 位移用 rAF 按「每秒多少 px」算，不用 CSS animation —— 要能随时暂停、
    *   并且在 resize 改了格宽之后接着原进度走，不是跳回起点。
    * - 一格滚出左边就 append 到队尾（offset 减掉一个 stride），所以无论屏多宽
    *   都不会露出空边，也不用把素材复制好几遍。
-   * - **视频是懒加载的**：只有滚到视野附近的格子才填 src。30 个 clip 合计
-   *   380MB，全量预载等于把首屏炸掉。离开视野就 pause，不然十几路解码一起跑。
-   * - 整条带在视口外、切到别的标签页、或用户按了暂停时，rAF 和所有视频一起停。
+   * - **每格是一张动态图（AVIF），不是 <video>**。原来是 27 路 30 秒的视频同时播，
+   *   每路约 4Mbps，带宽根本供不上；换成 12 秒的小动图后每格约 190KB。
+   * - 懒加载：只有滚到视野附近的格子才填 src，没到的是骨架。
+   * - 整条带在视口外、切到别的标签页、或用户按了暂停时，rAF 停。
+   *   用户暂停时所有格子还要定格（freezeAnim）—— 动图自己停不下来。
    * - prefers-reduced-motion 默认就是暂停态（用户可以手动播）。 */
   let heroStripStop = null;
   function initHeroStrip() {
@@ -1699,7 +1761,7 @@
 
     const running = () => !paused && visible && !document.hidden;
 
-    /* 懒加载 + 播放门控。每 ~150ms 跑一次，不必每帧都查。 */
+    /* 懒加载 + 定格。每 ~150ms 跑一次，不必每帧都查。 */
     function updateMedia() {
       const vw = strip.clientWidth;
       rows.forEach((st) => {
@@ -1709,23 +1771,13 @@
         // 算可见范围要用同一个值，否则判定会整体偏一格。
         const shift = st.back ? st.offset - stride : -st.offset;
         [...st.track.children].forEach((tile, i) => {
-          const v = tile.firstElementChild;
-          if (!v || tile.dataset.failed) return;
+          const img = tile.firstElementChild;
+          if (!img || tile.dataset.failed) return;
           // 这一格左边缘相对条带视口的位置
           const left = i * stride + shift;
-          const onScreen = left < vw && left + stride > 0;
           const near = left < vw + stride && left + stride > -stride;
-          if (near && !v.getAttribute('src')) {
-            v.preload = 'metadata';
-            v.src = v.dataset.src;
-          }
-          if (!running() || !onScreen) { if (!v.paused) v.pause(); return; }
-          if (v.paused && v.getAttribute('src')) {
-            v.play().catch((err) => {
-              // 浏览器拦了自动播（通常是没静音成功）：整条停掉，别反复重试
-              if (err && err.name === 'NotAllowedError') { paused = true; sync(); }
-            });
-          }
+          if (near && !img.getAttribute('src')) img.src = img.dataset.src;
+          freezeAnim(tile, paused);
         });
       });
     }
@@ -1741,7 +1793,7 @@
          * 两个方向的回收端是相反的，搞反了就会看到「画面播着忽然换一段」：
          *   正向（往左跑）滚出左边的是首格 → append 到队尾
          *   反向（往右跑）滚出右边的是末格 → prepend 到队首
-         * 回收永远发生在视野外，所以每一格始终在循环播自己那段视频。 */
+         * 回收永远发生在视野外，所以每一格始终在循环播自己那张动图。 */
         while (st.offset >= st.stride) {
           st.offset -= st.stride;
           if (st.back) st.track.prepend(st.track.lastElementChild);
@@ -1825,8 +1877,8 @@
       document.removeEventListener('visibilitychange', onVis);
       reduce.removeEventListener('change', onReduce);
       btn?.removeEventListener('click', onToggle);
-      // 把视频都停掉并卸掉 src，切走之后不该还有解码在跑
-      $$('video', strip).forEach((v) => { v.pause(); v.removeAttribute('src'); v.load(); });
+      // 卸掉 src：切走之后，还没下完的图不该接着下
+      $$('img', strip).forEach((img) => img.removeAttribute('src'));
     };
   }
 

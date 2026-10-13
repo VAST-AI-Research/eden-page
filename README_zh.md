@@ -331,7 +331,11 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 ### 大素材放哪
 
 小图（几百 KB 的缩略图、teaser 封面）直接进 `assets/`。**大批量视频和三维模型不要进 git** ——
-仓库会被拖垮，GitHub Pages 也有单文件 100MiB、整站 1GB 的上限。这些放 Cloudflare R2：
+仓库会被拖垮，GitHub Pages 也有单文件 100MiB、整站 1GB 的上限。
+
+视频转成的动态 AVIF 是例外：转完通常只剩几 MB，可以直接进 `assets/`，
+跟站点一起部署（EdenLive 的 60 张就在 `assets/edenlive/clips/`）。单张别超过 25MiB，
+做法见 CLAUDE.md 的「轮播里的动图」。其余大素材放 Cloudflare R2：
 
 ```
 R2 桶 eden-page-assets（Vast 账号）  →  assets/<项目名>/...
