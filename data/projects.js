@@ -15,76 +15,61 @@
  * 不用起本地服务器（file:// 下 fetch json 会被浏览器拦掉）。
  * ========================================================================== */
 
-/* 页面素材（视频、图片、三维模型）都放在 Cloudflare R2 的 eden-page-assets 桶里
- * （Vast 账号，APAC），不进本仓库。桶里的 key 和原先 HF dataset 里的路径一一对应，
- * 都以 assets/ 开头。例外是视频转成的动图，放在仓库里：EdenLive 的 60 张（见下面 EL
- * 的注释）和三篇论文的 62 张（见 SWA / MSA / MLA 的注释）。
+/* 页面素材都在本仓库的 assets/ 下，跟站点一起部署；下面的前缀都是相对 index.html 的路径。
+ * 进仓库前都压过：视频转成动态 AVIF（宣传片除外，仍是 H.264 视频），图片转 WebP，
+ * 单个文件不超过 25MiB（Cloudflare Workers 静态资源的上限）。做法见 CLAUDE.md 的「素材」一节。
+ * 原件在 HuggingFace dataset（huanngzh/page-assets、ToRealU/eden-page-assets）里，路径和
+ * 这里一一对应 —— 要换参数重转就从那边取，别拿压过的再压一遍。
  *
- * 2026-10 从 HuggingFace（huanngzh/page-assets、ToRealU/eden-page-assets）搬过来：
- * HF 每个请求都要先 302 到美国的 CDN，跳转地址每次都不一样（浏览器缓存不住），
- * 大陆还直连不上。R2 上的对象都带 Cache-Control: public, max-age=604800。
- *
- * ASSETS 是桶的公开地址，换域名、前面套 CDN 都只改这一行。另有两处写死了完整地址，
- * 要一起换：pages/ccm-workflow/data/manifest.json、index.html 的 og:image。
- * 现在用的是 r2.dev 开发地址：Cloudflare 对它限流，也不走 CDN 缓存，
- * 正式上线前要换成绑在 Cloudflare zone 上的自定义域名。 */
+ * 例外是三维模型（GLB / PLY）、CCM workflow 页的素材和 MultiLive 的论文 PDF，
+ * 还放在外部存储，地址是 ASSETS。pages/ccm-workflow/data/manifest.json 里也写死了
+ * 同一个地址，换的话两处一起换。 */
 const ASSETS = 'https://pub-9ddd2b0bd15e4006998cffc067402d86.r2.dev/';
 
 /* StereoWorld：assets/stereo-world/{videos,images,stereo_video,stereo_depth,flex_demo,ar_demo,inpaint_demo}/ */
-const SW = ASSETS + 'assets/stereo-world/';
+const SW = 'assets/stereo-world/';
 
 /* Mira-Scene 的素材在 assets/mira-scene/ 下：
- *   images/      teaser.jpg、layout_representation.png、pipeline.gif
+ *   images/      teaser.webp、layout_representation.webp、pipeline.avif（动图）
  *   videos/      demo.mp4（teaser）
- *   simulation/  blender/sim1..4.mp4、isaac/interaction1..3.mp4
+ *   simulation/  blender/sim1..4.avif、isaac/interaction1..3.avif
  *   scenes/      12 张场景查看器的预览图（文件名 = manifest 里的 case id）
  *   astra/       6 张 Astra 对比案例的缩略图（01..06 前缀 = 原站的展示顺序）
+ *   3d/viewers/scenes/<caseId>/environment.webp   场景查看器的环境全景图
  *
- * 这些是「轻」素材（图和视频）。三维模型另算，见下面的 MS3。 */
-const MS = ASSETS + 'assets/mira-scene/';
+ * 三维模型另算，见下面的 MS3。 */
+const MS = 'assets/mira-scene/';
 
-/* 三维素材（GLB 场景模型 + 环境全景图 + CCM workflow 的中间结果），
- * 155 个文件约 730MB，在 assets/mira-scene/3d/ 下：
- *   viewers/scenes/<caseId>/scene.glb + environment.png   12 个可旋转场景
- *   viewers/astra/<caseId>/{from_scratch,with_mira_scene}.glb   6 组并排对比
- *   workflow/<caseId>/...                                 CCM 分步工作流那一页
+/* 三维模型（GLB）和 CCM workflow 的中间结果，在外部存储的 assets/mira-scene/3d/ 下：
+ *   viewers/scenes/<caseId>/scene.glb                          12 个可旋转场景
+ *   viewers/astra/<caseId>/{from_scratch,with_mira_scene}.glb  6 组并排对比
+ *   workflow/<caseId>/...                                      CCM 分步工作流那一页
+ * 环境全景图不在这里，在仓库（见上面 MS）。
  *
  * 这些模型单个 7~78MB，一律「点了才下载」：section 默认只渲染预览图，
  * 读者点「载入 3D 场景」才动态 import three.js 并抓 GLB。
  * 查看器实现在 js/viewers/，接线在 js/app.js 的 initSceneViewers()。 */
-const MS3 = MS + '3d/';
+const MS3 = ASSETS + 'assets/mira-scene/3d/';
 
 /* 列表卡片的缩略图。之前是手画的 SVG，几 KB、能靠半透明自适应深浅色主题，
  * 但太朴素、几张之间看不出差别，也说不清这篇论文在做什么。现在换成生成的
- * 示意图（统一风格，见 CLAUDE.md 的「缩略图」一节），单张 260~320KB，
- * 所以跟其他重素材一样放在 R2、不进 git。
+ * 示意图（统一风格，见 CLAUDE.md 的「缩略图」一节），单张 260~320KB。
  *
  * 原图 2400x1500（= 卡片的 16:10）一律按原分辨率保留，不预先缩小 ——
  * 缩到 288px 存盘在高分屏和详情页切换器上都会糊，交给浏览器按 CSS 缩放。 */
-const TH = ASSETS + 'assets/thumbs/';
+const TH = 'assets/thumbs/';
 
-/* MultiLive 的 19 个页面素材（13 段视频、5 张图片、1 份 PDF，约 80 MiB）。 */
-const ML = ASSETS + 'assets/multilive/';
+/* MultiLive 的页面素材（宣传片、12 张动图、5 张图片）。论文 PDF 还在外部存储（见 links）。 */
+const ML = 'assets/multilive/';
 
-/* 三篇论文页面上的视频，除了宣传片 teaser，都转成了同名的 .avif 动图放在仓库里，
- * 路径和 R2 上一一对应（assets/<项目>/...），跟站点一起部署。下面三个前缀指向仓库，
- * 上面的 SW / MS / ML 仍指向 R2（图片、宣传片、三维模型都还在那边）。
- * 宣传片保留为视频：StereoWorld 和 Mira-Scene 的带声音，动图没有音轨。
- * 转换命令和 ratio 字段的用法见 CLAUDE.md 的「轮播和插图里的动图」。 */
-const SWA = 'assets/stereo-world/';
-const MSA = 'assets/mira-scene/';
-const MLA = 'assets/multilive/';
-
-/* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 985MB）在 R2 的
- * assets/edenlive/clips/ 下。文件名是随机短码，不带分辨率和模型名。短码与本地
- * artifacts/ 原文件名的对照在 data/edenlive-clips.md。
+/* EdenLive 的素材在 assets/edenlive/clips/ 下。文件名是随机短码，不带分辨率和模型名。
+ * 短码与本地 artifacts/ 原文件名的对照在 data/edenlive-clips.md。
  *
- * 页面上除了宣传片 teaser，用的都不是这些视频本身，而是同名的 <短码>.avif 动图，
- * 放在仓库的 assets/edenlive/clips/ 下（60 张共 153MB，和站点一起部署，同源加载）：
+ * 宣传片 e64ab20b.mp4 是视频，其余都是同名的 <短码>.avif 动图（60 张共 153MB）：
  *   作品带 27 格：clip 前 12 秒（5 秒 wipe + 7 秒生成画面）缩到 500×288，每张约 190KB。
  *     27 路 832×480、约 4Mbps 的视频同时播，带宽供不上。生成命令见 CLAUDE.md「滚动条带」。
  *   四节应用轮播 33 张：整段转，见 app-game 的注释。
- * R2 上的 .mp4 页面已不再引用，留着当重新生成动图的源。
+ * 原视频在 HF dataset 里，重新生成动图从那边取。
  *
  * 条带的挑选（本地目录 edenlive-wipe-480 里实际有 31 个，这里只用 27 个）：
  * 三个 elda 文件夹（025/026/028）内容高度相似，只留 025 的 wan21；
@@ -296,10 +281,10 @@ window.SITE_DATA = {
         en: "EdenLive will be open-sourced by 2026.10.18!",
       },
 
-      /* 宣传片。TL;DR 之后、摘要之前的那一段。
-       * 117MB、带声音，仍是视频、仍在 R2 —— EL 指的是仓库里的动图目录，这里不能用。 */
+      /* 宣传片。TL;DR 之后、摘要之前的那一段。带声音，所以仍是视频（不转动图）。
+       * 原片 117MB，压到了 24MB：Workers 静态资源单个文件上限 25MiB，再大部署不上去。 */
       teaser: {
-        src: ASSETS + "assets/edenlive/clips/e64ab20b.mp4",
+        src: EL + "e64ab20b.mp4",
       },
 
       /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
@@ -781,7 +766,7 @@ window.SITE_DATA = {
       },
 
       links: [
-        { label: "PDF", href: ML + "paper.pdf", icon: "paper" },
+        { label: "PDF", href: ASSETS + "assets/multilive/paper.pdf", icon: "paper" },
         { label: "Code", href: "https://github.com/VAST-AI-Research/MultiLive", icon: "github" },
       ],
 
@@ -816,7 +801,7 @@ window.SITE_DATA = {
             zh: "<p>学生模型先以 on-policy 方式生成完整的时间 × 视角 latent 网格。相同样本沿两个方向读取：按视角切成视频轨迹交给视频教师，按时间切成同步多视角图像交给多视角教师。两个分支的分布匹配梯度共同更新同一个生成器。</p>",
             en: "<p>The student first generates a complete time-by-view latent grid on-policy. The same sample is read in two ways: per-view temporal trajectories go to the video teacher, while synchronized multi-view slices go to the multi-view teacher. Their distribution-matching gradients update the same generator.</p>",
           },
-          src: ML + "pipeline.jpg",
+          src: ML + "pipeline.webp",
           alt: { zh: "MultiLive 双教师蒸馏流程图", en: "MultiLive dual-teacher distillation pipeline" },
           caption: {
             zh: "同一次学生生成同时接受时间先验与多视角先验的监督。",
@@ -842,7 +827,7 @@ window.SITE_DATA = {
             zh: "<p>MultiLive 在多种内容和风格上生成跨视角一致的动态场景，同时保持视频内运动连贯。</p>",
             en: "<p>MultiLive produces cross-view consistent dynamic scenes across diverse content and styles while maintaining coherent motion within each video.</p>",
           },
-          src: ML + "comparison.png",
+          src: ML + "comparison.webp",
           alt: { zh: "MultiLive 与其他方法的定性对比", en: "Qualitative comparison with other methods" },
         },
         {
@@ -852,14 +837,14 @@ window.SITE_DATA = {
           title: { zh: "更多结果", en: "More Results" },
           perPage: 1,
           items: [
-            { src: MLA + "results/lunar-astronaut.avif" },
-            { src: MLA + "results/eiffel-night.avif" },
-            { src: MLA + "results/mountain-road.avif" },
-            { src: MLA + "results/sunset-seaside.avif" },
-            { src: MLA + "results/flower-meadow.avif" },
-            { src: MLA + "results/blue-ufo.avif" },
-            { src: MLA + "results/red-macaw.avif" },
-            { src: MLA + "results/beach-run.avif" },
+            { src: ML + "results/lunar-astronaut.avif" },
+            { src: ML + "results/eiffel-night.avif" },
+            { src: ML + "results/mountain-road.avif" },
+            { src: ML + "results/sunset-seaside.avif" },
+            { src: ML + "results/flower-meadow.avif" },
+            { src: ML + "results/blue-ufo.avif" },
+            { src: ML + "results/red-macaw.avif" },
+            { src: ML + "results/beach-run.avif" },
           ],
         },
         {
@@ -873,10 +858,10 @@ window.SITE_DATA = {
           },
           perPage: 1,
           items: [
-            { src: MLA + "wm-horse.avif", caption: { zh: "骑马穿过山谷", en: "Horse ride through a valley" } },
-            { src: MLA + "wm-desert.avif", caption: { zh: "荒原星球", en: "Desert planet" } },
-            { src: MLA + "wm-forest.avif", caption: { zh: "森林秋千", en: "Forest swing" } },
-            { src: MLA + "wm-ocean.avif", caption: { zh: "海上游泳", en: "Swimming in the ocean" } },
+            { src: ML + "wm-horse.avif", caption: { zh: "骑马穿过山谷", en: "Horse ride through a valley" } },
+            { src: ML + "wm-desert.avif", caption: { zh: "荒原星球", en: "Desert planet" } },
+            { src: ML + "wm-forest.avif", caption: { zh: "森林秋千", en: "Forest swing" } },
+            { src: ML + "wm-ocean.avif", caption: { zh: "海上游泳", en: "Swimming in the ocean" } },
           ],
         },
       ],
@@ -947,7 +932,7 @@ window.SITE_DATA = {
 
       teaser: {
         src: MS + "videos/demo.mp4",
-        poster: MS + "images/teaser.jpg",
+        poster: MS + "images/teaser.webp",
         caption: {
           zh: "Mira-Scene 通过联合预测物体几何与像素对齐的规范对应关系，" +
               "重建出连贯的三维场景。",
@@ -1017,7 +1002,7 @@ window.SITE_DATA = {
                 "canonical surface. Combining CCM with monocular scene-space geometry produces " +
                 "dense correspondences for robust object-to-scene alignment.</p>",
           },
-          src: MS + "images/layout_representation.png",
+          src: MS + "images/layout_representation.webp",
           // 这张是示意图，铺满 1180px 会放糊，跟原项目页一样限到 35rem
           figureClass: "figure--compact",
           alt: {
@@ -1037,7 +1022,7 @@ window.SITE_DATA = {
           id: "pipeline",
           ratio: "1280 / 530",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "方法", en: "Mira-Scene Pipeline" },
-          src: MS + "images/pipeline.gif",
+          src: MS + "images/pipeline.avif",
           alt: { zh: "Mira-Scene 方法流程", en: "Mira-Scene pipeline" },
           caption: {
             zh: "<strong>Mira-Scene 总览。</strong>一个多模态扩散 Transformer 联合预测物体几何" +
@@ -1068,78 +1053,78 @@ window.SITE_DATA = {
             {
               id: "012_hotel_lobby",
               model: MS3 + "viewers/scenes/012_hotel_lobby/scene.glb",
-              environment: MS3 + "viewers/scenes/012_hotel_lobby/environment.png",
-              poster: MS + "scenes/012_hotel_lobby.png",
+              environment: MS + "3d/viewers/scenes/012_hotel_lobby/environment.webp",
+              poster: MS + "scenes/012_hotel_lobby.webp",
               workflow: "pages/ccm-workflow/?case=012_hotel_lobby",
             },
             {
               id: "Gemini_Generated_Image_sjbz27sjbz27sjbz",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz/scene.glb",
-              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz/environment.png",
-              poster: MS + "scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz.png",
+              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz/environment.webp",
+              poster: MS + "scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz.webp",
               workflow: "pages/ccm-workflow/?case=Gemini_Generated_Image_sjbz27sjbz27sjbz",
             },
             {
               id: "003_home_office",
               model: MS3 + "viewers/scenes/003_home_office/scene.glb",
-              environment: MS3 + "viewers/scenes/003_home_office/environment.png",
-              poster: MS + "scenes/003_home_office.png",
+              environment: MS + "3d/viewers/scenes/003_home_office/environment.webp",
+              poster: MS + "scenes/003_home_office.webp",
               workflow: "pages/ccm-workflow/?case=003_home_office",
             },
             {
               id: "Gemini_Generated_Image_dfwzixdfwzixdfwz",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz/scene.glb",
-              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz/environment.png",
-              poster: MS + "scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz.png",
+              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz/environment.webp",
+              poster: MS + "scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz.webp",
               workflow: "pages/ccm-workflow/?case=Gemini_Generated_Image_dfwzixdfwzixdfwz",
             },
             {
               id: "Gemini_Generated_Image_8rhdjt8rhdjt8rhd",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd/scene.glb",
-              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd/environment.png",
-              poster: MS + "scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd.png",
+              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd/environment.webp",
+              poster: MS + "scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd.webp",
             },
             {
               id: "Gemini_Generated_Image_dh6x0wdh6x0wdh6x",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/scene.glb",
-              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/environment.png",
-              poster: MS + "scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x.png",
+              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/environment.webp",
+              poster: MS + "scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x.webp",
             },
             {
               id: "scene05",
               model: MS3 + "viewers/scenes/scene05/scene.glb",
-              environment: MS3 + "viewers/scenes/scene05/environment.png",
-              poster: MS + "scenes/scene05.png",
+              environment: MS + "3d/viewers/scenes/scene05/environment.webp",
+              poster: MS + "scenes/scene05.webp",
             },
             {
               id: "idea_table",
               model: MS3 + "viewers/scenes/idea_table/scene.glb",
-              environment: MS3 + "viewers/scenes/idea_table/environment.png",
-              poster: MS + "scenes/idea_table.png",
+              environment: MS + "3d/viewers/scenes/idea_table/environment.webp",
+              poster: MS + "scenes/idea_table.webp",
             },
             {
               id: "designer-bedroom",
               model: MS3 + "viewers/scenes/designer-bedroom/scene.glb",
-              environment: MS3 + "viewers/scenes/designer-bedroom/environment.png",
-              poster: MS + "scenes/designer-bedroom.png",
+              environment: MS + "3d/viewers/scenes/designer-bedroom/environment.webp",
+              poster: MS + "scenes/designer-bedroom.webp",
             },
             {
               id: "green-room_local_furniture_hq_v1",
               model: MS3 + "viewers/scenes/green-room_local_furniture_hq_v1/scene.glb",
-              environment: MS3 + "viewers/scenes/green-room_local_furniture_hq_v1/environment.png",
-              poster: MS + "scenes/green-room_local_furniture_hq_v1.png",
+              environment: MS + "3d/viewers/scenes/green-room_local_furniture_hq_v1/environment.webp",
+              poster: MS + "scenes/green-room_local_furniture_hq_v1.webp",
             },
             {
               id: "italian-style-still-life",
               model: MS3 + "viewers/scenes/italian-style-still-life/scene.glb",
-              environment: MS3 + "viewers/scenes/italian-style-still-life/environment.png",
-              poster: MS + "scenes/italian-style-still-life.png",
+              environment: MS + "3d/viewers/scenes/italian-style-still-life/environment.webp",
+              poster: MS + "scenes/italian-style-still-life.webp",
             },
             {
               id: "the-white-room-cycles_countrylike_v12_bookshelf_full",
               model: MS3 + "viewers/scenes/the-white-room-cycles_countrylike_v12_bookshelf_full/scene.glb",
-              environment: MS3 + "viewers/scenes/the-white-room-cycles_countrylike_v12_bookshelf_full/environment.png",
-              poster: MS + "scenes/the-white-room-cycles_countrylike_v12_bookshelf_full.png",
+              environment: MS + "3d/viewers/scenes/the-white-room-cycles_countrylike_v12_bookshelf_full/environment.webp",
+              poster: MS + "scenes/the-white-room-cycles_countrylike_v12_bookshelf_full.webp",
             },
           ],
         },
@@ -1179,42 +1164,42 @@ window.SITE_DATA = {
               id: "Gemini_Generated_Image_gkkzzjgkkzzjgkkz",
               left:  MS3 + "viewers/astra/Gemini_Generated_Image_gkkzzjgkkzzjgkkz/from_scratch.glb",
               right: MS3 + "viewers/astra/Gemini_Generated_Image_gkkzzjgkkzzjgkkz/with_mira_scene.glb",
-              poster: MS + "astra/01-Gemini_Generated_Image_gkkzzjgkkzzjgkkz.png",
+              poster: MS + "astra/01-Gemini_Generated_Image_gkkzzjgkkzzjgkkz.webp",
             },
             {
               label: { zh: "案例 2", en: "Case 2" },
               id: "012_hotel_lobby",
               left:  MS3 + "viewers/astra/012_hotel_lobby/from_scratch.glb",
               right: MS3 + "viewers/astra/012_hotel_lobby/with_mira_scene.glb",
-              poster: MS + "astra/02-012_hotel_lobby.png",
+              poster: MS + "astra/02-012_hotel_lobby.webp",
             },
             {
               label: { zh: "案例 3", en: "Case 3" },
               id: "Gemini_Generated_Image_dfwzixdfwzixdfwz",
               left:  MS3 + "viewers/astra/Gemini_Generated_Image_dfwzixdfwzixdfwz/from_scratch.glb",
               right: MS3 + "viewers/astra/Gemini_Generated_Image_dfwzixdfwzixdfwz/with_mira_scene.glb",
-              poster: MS + "astra/03-Gemini_Generated_Image_dfwzixdfwzixdfwz.png",
+              poster: MS + "astra/03-Gemini_Generated_Image_dfwzixdfwzixdfwz.webp",
             },
             {
               label: { zh: "案例 4", en: "Case 4" },
               id: "Gemini_Generated_Image_dh6x0wdh6x0wdh6x",
               left:  MS3 + "viewers/astra/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/from_scratch.glb",
               right: MS3 + "viewers/astra/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/with_mira_scene.glb",
-              poster: MS + "astra/04-Gemini_Generated_Image_dh6x0wdh6x0wdh6x.png",
+              poster: MS + "astra/04-Gemini_Generated_Image_dh6x0wdh6x0wdh6x.webp",
             },
             {
               label: { zh: "案例 5", en: "Case 5" },
               id: "002_bedroom_suite",
               left:  MS3 + "viewers/astra/002_bedroom_suite/from_scratch.glb",
               right: MS3 + "viewers/astra/002_bedroom_suite/with_mira_scene.glb",
-              poster: MS + "astra/05-002_bedroom_suite.png",
+              poster: MS + "astra/05-002_bedroom_suite.webp",
             },
             {
               label: { zh: "案例 6", en: "Case 6" },
               id: "Gemini_Generated_Image_ac4a5mac4a5mac4a",
               left:  MS3 + "viewers/astra/Gemini_Generated_Image_ac4a5mac4a5mac4a/from_scratch.glb",
               right: MS3 + "viewers/astra/Gemini_Generated_Image_ac4a5mac4a5mac4a/with_mira_scene.glb",
-              poster: MS + "astra/06-Gemini_Generated_Image_ac4a5mac4a5mac4a.png",
+              poster: MS + "astra/06-Gemini_Generated_Image_ac4a5mac4a5mac4a.webp",
             },
           ],
         },
@@ -1230,19 +1215,19 @@ window.SITE_DATA = {
           },
           perPage: 1,
           items: [
-            { src: MSA + "simulation/blender/sim1.avif",
+            { src: MS + "simulation/blender/sim1.avif",
               caption: { zh: "<strong>重力。</strong>重力作用于重建出的场景及其中的物体。",
                          en: "<strong>Gravity.</strong> Gravity influences the reconstructed " +
                              "scene and its objects." } },
-            { src: MSA + "simulation/blender/sim2.avif",
+            { src: MS + "simulation/blender/sim2.avif",
               caption: { zh: "<strong>场景编辑。</strong>可以把物体重新组织成新的布局。",
                          en: "<strong>Scene Editing.</strong> Objects can be reorganized into a " +
                              "new layout." } },
-            { src: MSA + "simulation/blender/sim3.avif",
+            { src: MS + "simulation/blender/sim3.avif",
               caption: { zh: "<strong>抓取与放置。</strong>在重建场景里对物体做 pick-and-place。",
                          en: "<strong>Pick and Place.</strong> A pick-and-place task manipulates " +
                              "objects in the reconstructed scene." } },
-            { src: MSA + "simulation/blender/sim4.avif",
+            { src: MS + "simulation/blender/sim4.avif",
               caption: { zh: "<strong>碰撞。</strong>物体与场景之间的碰撞交互。",
                          en: "<strong>Collision.</strong> Collision interactions are simulated " +
                              "between objects and the scene." } },
@@ -1259,15 +1244,15 @@ window.SITE_DATA = {
           },
           perPage: 1,
           items: [
-            { src: MSA + "simulation/isaac/interaction1.avif",
+            { src: MS + "simulation/isaac/interaction1.avif",
               caption: { zh: "<strong>扶正椅子。</strong>机器人把歪倒的椅子扶正，并与桌子对齐。",
                          en: "<strong>Chair Alignment.</strong> The robot straightens a tilted " +
                              "chair and aligns it parallel to the table." } },
-            { src: MSA + "simulation/isaac/interaction2.avif",
+            { src: MS + "simulation/isaac/interaction2.avif",
               caption: { zh: "<strong>拉出椅子。</strong>机器人把餐椅从桌下拉出，方便落座。",
                          en: "<strong>Chair Pull-Out.</strong> The robot pulls a dining chair away " +
                              "from the table to make it accessible for sitting." } },
-            { src: MSA + "simulation/isaac/interaction3.avif",
+            { src: MS + "simulation/isaac/interaction3.avif",
               caption: { zh: "<strong>堆叠边桌。</strong>机器人整理闲置家具，" +
                              "把边桌叠放到软凳上。",
                          en: "<strong>Side-Table Stacking.</strong> The robot organizes unused " +
@@ -1377,7 +1362,7 @@ window.SITE_DATA = {
                 "metric depth maps while retaining strong geometric signals.</li>" +
                 "</ul>",
           },
-          src: SWA + "videos/motivation.avif",
+          src: SW + "videos/motivation.avif",
         },
         {
           type: "figure",
@@ -1403,21 +1388,21 @@ window.SITE_DATA = {
           title: { zh: "固定基线立体", en: "Fixed-Baseline Stereo" },
           perPage: 2,
           items: [
-            { src: SWA + "stereo_video/varied_scene_004_lakeside_balcony_w_j_l_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_006_volcano_crater_dj_wk_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_011_underground_river_arch_w_wl_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_012_floating_islands_dj_wk_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_021_snowy_mountain_road_w_wk_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_022_minimal_gallery_w_j_l_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_028_rice_terraces_dj_wk_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_034_tea_house_window_w_j_l_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_037_northern_lights_cabin_w_wl_wj_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_044_music_studio_w_j_l_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_059_hospital_operating_room_w_j_l_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_067_old_europe_square_w_wl_wj_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_071_glacier_lagoon_w_wl_wj_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_073_children_playroom_w_j_l_demo.avif" },
-            { src: SWA + "stereo_video/varied_scene_074_coastal_tunnel_road_w_wk_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_004_lakeside_balcony_w_j_l_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_006_volcano_crater_dj_wk_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_011_underground_river_arch_w_wl_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_012_floating_islands_dj_wk_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_021_snowy_mountain_road_w_wk_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_022_minimal_gallery_w_j_l_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_028_rice_terraces_dj_wk_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_034_tea_house_window_w_j_l_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_037_northern_lights_cabin_w_wl_wj_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_044_music_studio_w_j_l_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_059_hospital_operating_room_w_j_l_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_067_old_europe_square_w_wl_wj_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_071_glacier_lagoon_w_wl_wj_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_073_children_playroom_w_j_l_demo.avif" },
+            { src: SW + "stereo_video/varied_scene_074_coastal_tunnel_road_w_wk_demo.avif" },
           ],
         },
         {
@@ -1434,8 +1419,8 @@ window.SITE_DATA = {
           },
           perPage: 2,
           items: [
-            { src: SWA + "stereo_depth/stereo_video1_with_disp_vis1.avif" },
-            { src: SWA + "stereo_depth/stereo_video2_with_disp_vis2.avif" },
+            { src: SW + "stereo_depth/stereo_video1_with_disp_vis1.avif" },
+            { src: SW + "stereo_depth/stereo_video2_with_disp_vis2.avif" },
           ],
         },
         {
@@ -1451,37 +1436,37 @@ window.SITE_DATA = {
           },
           perPage: 2,
           items: [
-            { src: SWA + "flex_demo/flex_converging_prompt_00117_demo.avif",
+            { src: SW + "flex_demo/flex_converging_prompt_00117_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SWA + "flex_demo/flex_converging_prompt_01290_demo.avif",
+            { src: SW + "flex_demo/flex_converging_prompt_01290_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SWA + "flex_demo/flex_converging_prompt_05539_demo.avif",
+            { src: SW + "flex_demo/flex_converging_prompt_05539_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SWA + "flex_demo/flex_converging_prompt_09641_demo.avif",
+            { src: SW + "flex_demo/flex_converging_prompt_09641_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SWA + "flex_demo/flex_depth_offset_prompt_03814_demo.avif",
+            { src: SW + "flex_demo/flex_depth_offset_prompt_03814_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SWA + "flex_demo/flex_depth_offset_prompt_05313_demo.avif",
+            { src: SW + "flex_demo/flex_depth_offset_prompt_05313_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SWA + "flex_demo/flex_depth_offset_prompt_02664_demo.avif",
+            { src: SW + "flex_demo/flex_depth_offset_prompt_02664_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SWA + "flex_demo/flex_depth_offset_prompt_07517_demo.avif",
+            { src: SW + "flex_demo/flex_depth_offset_prompt_07517_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SWA + "flex_demo/flex_height_offset_prompt_02504_demo.avif",
+            { src: SW + "flex_demo/flex_height_offset_prompt_02504_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SWA + "flex_demo/flex_height_offset_prompt_02927_demo.avif",
+            { src: SW + "flex_demo/flex_height_offset_prompt_02927_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SWA + "flex_demo/flex_height_offset_prompt_04808_demo.avif",
+            { src: SW + "flex_demo/flex_height_offset_prompt_04808_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SWA + "flex_demo/flex_height_offset_prompt_08317_demo.avif",
+            { src: SW + "flex_demo/flex_height_offset_prompt_08317_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_03257_demo.avif",
+            { src: SW + "flex_demo/flex_horizontal_offset_prompt_03257_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
-            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_04506_demo.avif",
+            { src: SW + "flex_demo/flex_horizontal_offset_prompt_04506_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
-            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_06924_demo.avif",
+            { src: SW + "flex_demo/flex_horizontal_offset_prompt_06924_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
-            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_08785_demo.avif",
+            { src: SW + "flex_demo/flex_horizontal_offset_prompt_08785_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
           ],
         },
@@ -1509,9 +1494,9 @@ window.SITE_DATA = {
           },
           perPage: 2,
           items: [
-            { src: SWA + "ar_demo/custom_varied_021.avif" },
-            { src: SWA + "ar_demo/custom_varied_022.avif" },
-            { src: SWA + "ar_demo/custom_varied_059.avif" },
+            { src: SW + "ar_demo/custom_varied_021.avif" },
+            { src: SW + "ar_demo/custom_varied_022.avif" },
+            { src: SW + "ar_demo/custom_varied_059.avif" },
           ],
         },
         {
@@ -1528,12 +1513,12 @@ window.SITE_DATA = {
           // 2-fixed：这些片段本身已经是三路并排拼接，塌成一列会看不清
           perPage: 2,
           items: [
-            { src: SWA + "inpaint_demo/shard_01_teacher_cfg5.0_steps50_0000_seed1_concat.avif" },
-            { src: SWA + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0000_seed1_concat.avif" },
-            { src: SWA + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0009_seed1_concat.avif" },
-            { src: SWA + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0012_seed1_concat.avif" },
-            { src: SWA + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0002_seed1_concat.avif" },
-            { src: SWA + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0003_seed1_concat.avif" },
+            { src: SW + "inpaint_demo/shard_01_teacher_cfg5.0_steps50_0000_seed1_concat.avif" },
+            { src: SW + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0000_seed1_concat.avif" },
+            { src: SW + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0009_seed1_concat.avif" },
+            { src: SW + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0012_seed1_concat.avif" },
+            { src: SW + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0002_seed1_concat.avif" },
+            { src: SW + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0003_seed1_concat.avif" },
           ],
         },
       ],

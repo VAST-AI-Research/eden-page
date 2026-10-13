@@ -92,7 +92,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
     en: "One line on what it does and why it is better.",
   },
   // 列表卡片缩略图，必须 16:10。现有两篇论文用的是生成的示意图（统一风格、
-  // 放在 R2，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
+  // 放在 assets/thumbs/，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
   thumb: TH + "my-project.jpg",
 
   // 会议信息：标题下方一行居中排版。没中会议就把这几行删掉，整块自动消失。
@@ -253,8 +253,8 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
   columns: 3,
   items: [ { id: "case01",                       // 用于记住该场景的环境旋转角度
              model: MS3 + "viewers/scenes/case01/scene.glb",
-             environment: MS3 + "viewers/scenes/case01/environment.png",
-             poster: MS + "scenes/case01.png",
+             environment: MS + "3d/viewers/scenes/case01/environment.webp",
+             poster: MS + "scenes/case01.webp",
              workflow: "pages/ccm-workflow/?case=case01" } ] }   // 可选，给了才显示链接
 
 // 并排双查看器：上面一行缩略图选条，下面两块常驻的查看器。
@@ -265,7 +265,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
              label: { zh: "案例 1", en: "Case 1" },
              left:  MS3 + "viewers/astra/case01/from_scratch.glb",
              right: MS3 + "viewers/astra/case01/with_mira_scene.glb",
-             poster: MS + "astra/01-case01.png",   // 缩略图条里那张小图
+             poster: MS + "astra/01-case01.webp",  // 缩略图条里那张小图
              leftLabel:  { zh: "基线", en: "Baseline" },      // 可选，有默认值
              rightLabel: { zh: "我们的", en: "Ours" } } ] }
 ```
@@ -330,41 +330,28 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 
 ### 大素材放哪
 
-小图（几百 KB 的缩略图、teaser 封面）直接进 `assets/`。**大批量视频和三维模型不要进 git** ——
-仓库会被拖垮，GitHub Pages 也有单文件 100MiB、整站 1GB 的上限。
+页面上用到的素材都放 `assets/<项目名>/`，跟站点一起部署 —— **但要先压**：视频转成动态
+AVIF（宣传片除外，要能拖进度条、有的带声音，仍用 H.264），图片转 WebP。单个文件别超过
+25MiB（Cloudflare Workers 静态资源的上限），整站留在 GitHub Pages 的 1GB 以内。
+动图放进轮播或插图时那一节要写 `ratio`（画面宽高比）。命令和画质底线见 CLAUDE.md 的「素材」一节。
 
-视频转成的动态 AVIF 是例外：转完通常只剩几 MB，可以直接进 `assets/`，跟站点一起部署
-（EdenLive 和三篇论文的 122 张就在 `assets/` 下，路径和 R2 一致）。单张别超过 25MiB；
-放进轮播或插图时那一节要写 `ratio`（画面宽高比），做法见 CLAUDE.md 的「轮播和插图里的动图」。
-其余大素材放 Cloudflare R2：
+原件留在 HF dataset（`huanngzh/page-assets`、`ToRealU/eden-page-assets`）里，路径一一对应。
+要重转就从那边取，别拿压过的再压一遍。
 
-```
-R2 桶 eden-page-assets（Vast 账号）  →  assets/<项目名>/...
-```
-
-数据里用一个常量存基地址，条目里只写相对路径。都在 `data/projects.js` 顶部：
+三维模型、CCM workflow 的素材和 MultiLive 的论文 PDF 是例外：加起来约 730MB，进不了仓库，
+放在外部存储。各目录的前缀都是 `data/projects.js` 顶部的常量，条目里只写后半截路径：
 
 ```js
-const ASSETS = 'https://pub-….r2.dev/';   // 桶的公开地址，换域名、套 CDN 只改这一行
-const SW = ASSETS + 'assets/stereo-world/';
-const MS = ASSETS + 'assets/mira-scene/';
-const TH = ASSETS + 'assets/thumbs/';
+const ASSETS = 'https://…/';                 // 外部存储，只放三维模型、CCM、PDF
+const MS3 = ASSETS + 'assets/mira-scene/3d/';
+const SW = 'assets/stereo-world/';           // 其余都在仓库里
+const MS = 'assets/mira-scene/';
+const TH = 'assets/thumbs/';
 // 用的时候：src: SW + "videos/demo.mp4"
 ```
 
-上传用 wrangler（先 `npx wrangler login` 登录一次。登录的人能看到不止一个账号时，
-要用 `CLOUDFLARE_ACCOUNT_ID` 指定 Vast，ID 在 `npx wrangler whoami` 里）：
-
-```bash
-CLOUDFLARE_ACCOUNT_ID=<Vast 账号 ID> npx wrangler r2 object put \
-  eden-page-assets/assets/<项目名>/videos/x.mp4 --file videos/x.mp4 \
-  --content-type video/mp4 --cache-control "public, max-age=604800" --remote
-```
-
-一次传一个文件，批量就写个循环。两个坑：`--content-type` 一定要给，不给就成了
-`application/octet-stream`；对象带 7 天缓存，**同一个地址覆盖上传后，老读者最多 7 天
-内还会看到旧文件**。要立刻生效就换文件名，或者在数据里加 `?v=2`（R2 会忽略查询串，
-MultiLive 的 `?v=dial4` 就是这么用的）。
+`pages/ccm-workflow/data/manifest.json` 里写死了同一个 `ASSETS` 地址，换的话两处一起换。
+这个地址必须允许跨域 GET —— 三维查看器和 CCM 页都是 `fetch` 去拿的。
 
 ## 部署
 
