@@ -211,9 +211,14 @@ table { border-collapse: collapse; }
 /* 居中轮播的 section 要更宽：视频本身 960px，两侧还各有一个 40px 的翻页按钮。
    只放宽这一个 section，正文和标题不跟着变 —— 它们各自有自己的限宽。
    选择器要比「目录可见时收窄正文」那条更具体，否则会被它压回 976px。
-   同时也要给目录让位：1180px 写死的话，1440 以下的视口里轮播会盖住右侧目录。 */
-body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
-  max-width: min(1180px, calc(100vw - 2 * (var(--toc-w) + 2rem)));
+   同时也要给目录让位：1180px 写死的话，1440 以下的视口里轮播会盖住右侧目录。
+   让位只在目录是一整列文字时才需要（1101px 以上，和第 6 段那条同一个断点）。
+   放在媒体查询外面的话，「视口 − 464px」在窄屏会算成负数：390px 的手机上
+   这几节被压成 0 宽，轮播、骨架和正文全看不见；1024px 也只剩 560px。 */
+@media (min-width: 1101px) {
+  body:has(#toc:not([hidden])) #sections .wrap.wrap--carousel {
+    max-width: min(1180px, calc(100vw - 2 * (var(--toc-w) + 2rem)));
+  }
 }
 .measure, .prose { max-width: var(--measure); }
 .prose { color: var(--text-muted); }
