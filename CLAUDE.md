@@ -16,13 +16,10 @@ project_page/
 ├── vendor/               # vendored three.js r180（MIT），不引 CDN、不要构建
 ├── pages/                # 独立子应用，每个一个自包含目录（见「独立子页」一节）
 │   └── ccm-workflow/     #   CCM 分步工作流：index.html + 自己的 css/ js/ data/
-├── assets/
+├── assets/               # 只放站点自己的东西（logo、图标、字体、占位图）。
+│   │                     #   页面素材都在 R2，见「素材」一节
 │   ├── logo.svg          # header 里的标志（由 site.logo 引用，见「标志」一节）
 │   ├── favicon.svg       # 标签页图标（logo 的 16px 版，index.html 里单独引用）
-│   │                     # （列表卡片缩略图不在这里：是生成的示意图，托管在
-│   │                     #   R2 的 assets/thumbs/，见「缩略图」一节）
-│   ├── edenlive/clips/*.avif # EdenLive 的 60 张动图（条带 + 四节应用），见「素材托管」
-│   ├── {multilive,mira-scene,stereo-world}/…/*.avif # 三篇论文的 62 张动图，路径和 R2 一一对应
 │   └── placeholder/*.svg # 占位素材，真素材进来后应逐步删除
 └── README.md             # 面向使用者的替换/部署说明
 ```
@@ -224,7 +221,7 @@ AVIF：EdenLive 四节应用 33 张，MultiLive / Mira-Scene / StereoWorld 共 6
 - **下完之前格子是骨架，按那一节的 `ratio` 占位**（写在 section 上，如
   `ratio: "1664 / 480"`），图到了交给图自己的比例。**动图一律要写 `ratio`**：不写就按
   EdenLive 素材的 1280/704，比例不对图到时会跳 —— Mira-Scene 那张 1280×530 的
-  `pipeline.gif` 没写时，载入那一下页面缩了 122px。几 MB 的动图是边下边播的，
+  流程动图没写时，载入那一下页面缩了 122px。几 MB 的动图是边下边播的，
   第一帧一到就把骨架盖住。
 - `prefers-reduced-motion` 下载过程中图是藏着的，下完直接定格。
 - 判断靠扩展名（`isAnim()`），所以**静态图别用 `.avif` / `.gif` 放进轮播或插图**，
@@ -234,8 +231,8 @@ AVIF：EdenLive 四节应用 33 张，MultiLive / Mira-Scene / StereoWorld 共 6
 带声音，动图没有音轨。转之前先看音轨是不是真有声音（`volumedetect` 的 mean 在 −90dB
 左右就是导出时附带的静音轨，StereoWorld 的 motivation 就是这样才转的）。
 
-转换命令（源是 R2 上同名 `.mp4`，产物放进仓库，路径和 R2 一一对应，
-如 `assets/edenlive/clips/`、`assets/stereo-world/stereo_video/`）：
+转换命令（源是 HF dataset 里同名的 `.mp4`，产物传到 R2 桶的同一路径，
+如 `assets/edenlive/clips/`、`assets/stereo-world/stereo_video/`，见「素材」一节）：
 
 ```bash
 # 整段、原分辨率、原帧率。CRF 38 不封码率：封顶会让画面复杂的片段整块糊成色块，
@@ -341,13 +338,13 @@ python3 -m http.server 8000     # 然后开 http://localhost:8000/
 入口是 sceneViewer 前 4 张卡片上的「查看 CCM workflow →」（`?case=<id>` 原生支持，
 新标签页打开）。
 
-素材（152 个文件 146MB，含 37 个 GLB / 29 个 PLY 点云）都在 R2 桶的
-`assets/mira-scene/3d/workflow/` 下，由 `pages/ccm-workflow/data/manifest.json`
+素材（119 个文件约 150MB，含 33 个 GLB / 29 个 PLY 点云）在 R2 桶的
+`assets/mira-scene/3d/workflow/` 下（见「素材」一节），由 `pages/ccm-workflow/data/manifest.json`
 里的绝对地址引用（不是原站 `data/static-demo-cases/` 那种相对路径）。
 升级原站版本时，把下面这几处重新套一遍即可（`index.html` 的注释里也写了）：
 css/js 路径、manifest 路径、`vendor/` 的三级相对路径、返回链接、标题。
 
-### 缩略图（R2 的 assets/thumbs/）
+### 缩略图（assets/thumbs/）
 
 列表卡片的 `thumb` 用**生成的示意图**（gpt-image-2.5-sunburst，lumina-imagen 技能），
 统一风格，一眼能看出这篇论文的输入和输出。地址走 `data/projects.js` 顶部的 `TH` 常量。
@@ -377,8 +374,7 @@ css/js 路径、manifest 路径、`vendor/` 的三级相对路径、返回链接
   详情页切换器是 62×42（1.476），会左右各裁掉约 4%，所以主要内容别贴边。
 - **按原分辨率存盘（2400×1500），不要预先缩小成 288px。** 缩了在高分屏上会糊，
   交给浏览器按 CSS 缩放。体积靠 JPEG 控制：quality 90 约 260~320KB、PSNR 46dB
-  肉眼无损；再往下压到 82 能省 30% 但线条边缘会开始起噪点。
-  这个尺寸算「重素材」，跟视频一样放在 R2、不进 git。
+  肉眼无损；再往下压到 82 能省 30% 但线条边缘会开始起噪点。也别转 WebP。
 
 **光栅图适配不了深色主题** —— 这是相比 SVG 唯一的退步。`<img>` 拿不到页面的
 CSS 变量，没法像以前那样靠半透明透出卡片底色。所以底色统一定在暖白
@@ -400,10 +396,10 @@ im=Image.open('/tmp/raw.png').convert('RGB'); W,H=im.size
 nh=int(W/(16/10)); top=(H-nh)//2
 im.crop((0,top,W,top+nh)).save('/tmp/out.jpg','JPEG',quality=90,optimize=True,progressive=True)"
 
-# 3. 传 R2（登录和账号 ID 见 README「大素材放哪」）
+# 3. 传到 R2（登录和账号 ID 见「素材」一节）
 CLOUDFLARE_ACCOUNT_ID=<Vast 账号 ID> npx wrangler r2 object put \
-  eden-page-assets/assets/thumbs/<名字>.jpg --file /tmp/out.jpg \
-  --content-type image/jpeg --cache-control "public, max-age=604800" --remote
+  eden-page-assets/assets/thumbs/<名字>.jpg --file /tmp/out.jpg --remote \
+  --content-type image/jpeg --cache-control "public, max-age=604800"
 ```
 
 **验收**：别只看大图。把成品按 288px（卡片）和 62px（切换器）两个真实尺寸缩一遍
@@ -461,49 +457,60 @@ for s in (34,26,16):
   用 `setAttribute` 而不是 `v.src = ...`：后者读回来会变成绝对地址，
   `video[data-src]` 选择器和「填过没有」的判断都不好写。
 
-### 素材托管（Cloudflare R2）
+### 素材
 
-视频、三维模型、缩略图这些重素材都在 Cloudflare R2 的 **`eden-page-assets`** 桶里
-（Vast 账号，APAC，313 个文件约 2.1GB），不进 git。key 沿用原先 HF dataset 的路径
-（`assets/<项目>/...`），所以那两个 dataset（`huanngzh/page-assets`、
-`ToRealU/eden-page-assets`）现在只是原件备份，页面不再引用。
+页面用到的视频、动图、图片、三维模型和 PDF 都在 Cloudflare R2 的 **`eden-page-assets`** 桶里
+（Vast 账号，约 1.2GB），经 **`https://assets.vast-eden.ai/`** 走 Cloudflare CDN 访问，不进仓库。
+桶里的 key 都以 `assets/<项目>/` 开头；`data/projects.js` 顶部的 `SW` / `MS` / `MS3` / `ML` /
+`TH` / `EL` 就是这几个目录的完整地址，都从 `ASSETS` 派生。
 
-**例外：视频转成的 AVIF 动图在仓库里**，共 122 张约 228MB，最大一张 12MB，
-路径和 R2 上的 key 一一对应：
+为什么不放仓库：站点是推送后部署到 Cloudflare Workers 的，静态资源单个文件最大 25MiB
+（付费版也一样）。宣传片原片 EdenLive 117MB、MultiLive 38MB，三维模型单个最大 78MB，都放不进去；
+EdenLive 那段还超过 GitHub 单文件 100MiB 的上限，连推都推不上去。
 
-- EdenLive 60 张（153MB）在 `assets/edenlive/clips/`，由 `data/projects.js` 的 `EL` 指向；
-- 三篇论文 62 张（75MB）在 `assets/{multilive,mira-scene,stereo-world}/` 下，由
-  `MLA` / `MSA` / `SWA` 指向（`ML` / `MS` / `SW` 仍指向 R2，图片和宣传片用它们）。
+进桶之前都压过：
 
-它们跟站点一起部署、同源加载，不受 r2.dev 限流。视频转成动图之后才小到能进 git；
-原视频、宣传片、三维模型仍在 R2。往仓库里放动图守住几条线：单张别超过 25MiB
-（Cloudflare Workers 静态资源的上限）、GitHub 单文件 50MiB 起报警，整站要留在
-GitHub Pages 的 1GB 以内。**重新生成会让历史变胖**：每覆盖一次，旧文件都永久留在
-git 历史里，所以调参数先在本地挑好，定稿了再提交。
+- **视频 → 动态 AVIF**，命令和画质底线见「轮播和插图里的动图」和「滚动条带」两段。
+  Mira-Scene 的流程图原本是 4.6MB 的 GIF，也转成了 AVIF（线条图用 CRF 30，465KB）。
+- **宣传片用原片，不转码**（要能拖进度条、有的带声音，画质也不打折）。
+- **图片 → WebP**（quality 90，宽于 2400 的先缩到 2400）：PNG 一律转，JPEG 超过
+  300KB 才转，转完省不到 25% 的保留原图。缩略图按「缩略图」一节保持 JPEG。
 
-**为什么从 HF 搬走**（2026-10）：每个 `resolve/main` 请求都要先 302 到美国的 CDN，
+**原件在两个 HF dataset 里**（`huanngzh/page-assets`、`ToRealU/eden-page-assets`），
+路径和桶里一一对应（扩展名可能不同）。要换参数重转就从那边取，别拿压过的再压一遍。
+**桶里只放页面在用的文件**，原件和没用上的版本不留（2026-10 清理过一次，删了 157 个原件，
+HF 上都有）。页面不直接引用 HF：每个 `resolve/main` 请求都要先 302 到美国的 CDN，
 跳转地址带签名、每次都不一样，浏览器缓存不住，回访也要全量重下；大陆还直连不上。
 
-公开地址写在三处，**换域名时三处一起改**：
+上传用 wrangler（先 `npx wrangler login` 登录一次。登录的人能看到不止一个账号时，
+要用 `CLOUDFLARE_ACCOUNT_ID` 指定 Vast，ID 在 `npx wrangler whoami` 里）：
 
-- `data/projects.js` 顶部的 `ASSETS` 常量（`SW` / `MS` / `TH` / `ML` 都从它派生，
-  EdenLive 的宣传片也直接拼它；`EL` 指的是仓库里的动图，和它无关）
-- `pages/ccm-workflow/data/manifest.json` 里的完整地址（JSON 引用不了常量）
-- `index.html` 的 `og:image` 兜底值（爬虫要绝对地址）
+```bash
+CLOUDFLARE_ACCOUNT_ID=<Vast 账号 ID> npx wrangler r2 object put \
+  eden-page-assets/assets/<项目>/<路径> --file <本地文件> --remote \
+  --content-type image/avif --cache-control "public, max-age=604800"
+```
+
+一次传一个文件，批量就写个循环。`--content-type` 按扩展名给（`image/avif`、`image/webp`、
+`image/jpeg`、`video/mp4`、`model/gltf-binary`……），不给的话浏览器拿到的是
+`application/octet-stream`。传完 `curl -I` 一下新地址，`etag` 就是文件的 MD5，可以和本地对一下。
 
 几个坑：
 
-- **现在用的是 r2.dev 开发地址**：Cloudflare 对它限流、不走 CDN 缓存，只能过渡。
-  正式域名得绑在 Vast 账号里的某个 zone 上 —— `vast-eden.ai` 的 DNS 在 Route 53，
-  不在 Cloudflare，没法直接用 `assets.vast-eden.ai`。
-- **桶上的 CORS 规则不能删**（GET/HEAD，任意来源）。`<video>` / `<img>` 用不着它，
-  但三维查看器用 `fetch` 拉 GLB、用 anonymous CORS 加载全景图，CCM 页也要 fetch
-  JSON 和 mask。删了这三处会一起挂，页面其余部分照常，很难第一时间发现。
-- 对象都带 `Cache-Control: public, max-age=604800`。覆盖上传同名文件后，老读者最多
-  7 天内还会看到旧的；要立即生效就换文件名或加 `?v=`（R2 忽略查询串）。
-- 上传命令见 README「大素材放哪」，`--content-type` 必须给。
-- **R2 只解决了跳转和缓存，跨境链路本身还是慢**：从开发机测 Cloudflare 自家的
-  测速点也只有约 250KB/s。要给大陆读者真正提速，得在前面再套国内 CDN（要 ICP 备案）。
+- **覆盖同名文件，老读者最多 7 天内还会看到旧的**：对象带 `max-age=604800`，CDN 也按这个缓存。
+  要立即生效就换个文件名，或者在 Cloudflare 后台按 URL 清缓存。
+- **`vast-eden.ai` 这个 zone 上有两条只作用于 `assets.vast-eden.ai` 的规则，别删**：
+  - 缓存规则（Eligible for cache）：Cloudflare 默认只缓存常见扩展名，GLB / PLY / JSON 不在其中，
+    没有这条它们每次都回源到 R2。
+  - 响应头改写，固定加 `Access-Control-Allow-Origin: *`：三维查看器用 `fetch` 拉 GLB、用 CORS
+    加载全景图，CCM 页也要 fetch JSON 和 mask。R2 只在请求带 `Origin` 时才回 CORS 头，
+    缓存命中时不一定带得上；删了这条，这几处会时好时坏，页面其余部分照常，很难第一时间发现。
+  - 桶自己的 CORS 规则（GET/HEAD，任意来源）也留着，算第二道保险。
+- 完整地址写死在三处，**换域名时一起改**：`data/projects.js` 的 `ASSETS`、
+  `pages/ccm-workflow/data/manifest.json`（JSON 引用不了常量）、`index.html` 的 `og:image`
+  兜底值（爬虫要绝对地址）。
+- **跨境链路本身还是慢**：素材走 CDN、能缓存，但从大陆访问 Cloudflare 本身就慢（开发机测
+  Cloudflare 自家的测速点约 250KB/s）。要给大陆读者真正提速，得在前面再套国内 CDN（要 ICP 备案）。
 
 ## 样式系统（css/style.css）
 
@@ -581,7 +588,7 @@ EdenLive 在用。两种形态：
 - 切走页面时 `heroStripStop()` 会 `removeAttribute('src')`，没下完的图不再接着下。
 - 格子里的图用 `object-fit: contain` 而不是 `cover`：这些是生成结果，
   裁掉边缘就看不出画面在干什么了。
-- **动图怎么生成**（源是 R2 上同名的 `.mp4`，产物放进仓库的 `assets/edenlive/clips/`）：
+- **动图怎么生成**（源是 HF dataset 里同名的 `.mp4`，产物传到 R2 桶的 `assets/edenlive/clips/`）：
 
   ```bash
   # 500×288 = 一格 253×146 的 2 倍屏尺寸。24fps 的源减半成 fps=12，16fps 的保持 16
@@ -663,8 +670,8 @@ SECTION_RENDERERS → 首页/列表渲染 → 交互 init* → 路由 → `rende
 （只给前者，Tab 还是会跳进看不见的视频里）、页码用 `aria-live="polite"` 播报、
 圆点的点击区域靠 `::after` 撑到 24px（视觉上还是 7px，但手指点得中）。
 
-素材必须压缩后再进 `assets/`：图片过 TinyPNG，视频建议 H.264 mp4 且控制在几 MB 内，
-teaser 视频给 `poster`。图片默认 `loading="lazy"`。
+素材必须压缩后再传 R2：图片过 TinyPNG，视频建议 H.264 mp4 且控制在几 MB 内
+（宣传片例外：用原片、不转码，见「素材」），teaser 视频给 `poster`。图片默认 `loading="lazy"`。
 
 ## 部署
 
@@ -683,24 +690,21 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
   `teaser` / 两张流程图 / 四节应用的 carousel / `thumb` 都还指向
   `assets/placeholder/*.svg`，数据里每处都留了 `TODO:` 注释。
   链接（论文/代码/权重/demo）也还是 `href: "#"`。
-- **EdenLive 的 61 个视频**（条带 27 个 + 宣传片 + 四节应用 33 个）在 R2 的
-  `assets/edenlive/clips/` 下，由 `data/projects.js` 顶部的 `EL` 常量指向；
+- **EdenLive 的 61 段素材**（条带 27 + 宣传片 + 四节应用 33）在 R2 桶的
+  `assets/edenlive/clips/` 下，由 `data/projects.js` 顶部的 `EL` 常量指向：宣传片是原片
+  `.mp4`，其余都是同短码的 `.avif` 动图。原视频见「素材」一节，
   短码和 `artifacts/` 原文件名的对照在 `data/edenlive-clips.md`。
-  除了宣传片 teaser，条带 27 个和四节应用 33 个，页面实际用的都是同短码的
-  `.avif` 动图，在仓库的 `assets/edenlive/clips/` 里；R2 上的 `.mp4` 只留作生成源。
   两张流程图要照 `artifacts/.../Images_attachments/` 里那两张（`-realtime-v4` 和
   `-interaction`）重画成站点配色，不要直接用原图 —— 它们是绿色系，和全站的紫/青不搭。
   另外文案里 `>24 fps`、分钟级、百毫秒级延迟这几个数字是对外口径的下限，
   最终以实测为准；「多种参考输入」的措辞也还没定（可能改成「任意」）。
 - **Mira-Scene 的两节交互 section 已接成真查看器**（`sceneViewer` / `compareViewer`，
   见上面「三维查看器」一节），CCM workflow 也以 `pages/ccm-workflow/` 独立页挂出。
-  三维素材 155 个文件约 730MB 在 `assets/mira-scene/3d/` 下。
+  三维模型和 CCM 的素材约 740MB，在 R2 桶的 `assets/mira-scene/3d/` 下。
   遗留一点：原站那两节的 case 列表是从 `manifest.json` 动态拉的，我们写死在
   `data/projects.js` 里 —— 他们加了新 case，我们这边不会自动跟上。
   `pages/ccm-workflow/` 同理，它的 `data/manifest.json` 是抓下来改过地址的快照。
-- **⚠️ 素材的公开地址还是 r2.dev 开发地址**（见上面「素材托管」一节）。
-  上线前要定一个正式域名，绑到 R2 桶上，再把那三处地址一起换掉。
-  StereoWorld（`SW`）、Mira-Scene（`MS`）、MultiLive（`ML`）的目录划分见
+- StereoWorld（`SW`）、Mira-Scene（`MS`）、MultiLive（`ML`）的目录划分见
   `data/projects.js` 顶部各常量的注释。Mira-Scene 的 `scenes/` 里文件名就是原站
   manifest 的 case id，`astra/` 加了 `01..06` 前缀保留原站的展示顺序。
 - **没有在浏览器里视觉验证过。** 到目前为止的检查都是静态的（`node --check`、

@@ -101,8 +101,8 @@ Add an object to the `papers` array in `data/projects.js`:
     en: "One line on what it does and why it is better.",
   },
   // List-card thumbnail, must be 16:10. The two existing papers use generated
-  // diagrams (one shared style, hosted on R2 via the TH constant at the top of
-  // the file). See the "缩略图" section of CLAUDE.md for how to make one.
+  // diagrams (one shared style, in the asset bucket via the TH constant at the
+  // top of the file). See the "缩略图" section of CLAUDE.md for how to make one.
   thumb: TH + "my-project.jpg",
 
   // Venue line, centered under the title. Delete these lines if there is no
@@ -144,8 +144,8 @@ Add an object to the `papers` array in `data/projects.js`:
 }
 ```
 
-Array order is list order — move an entry up to feature it. Put assets under
-`assets/my-paper/`.
+Array order is list order — move an entry up to feature it. Upload its assets to the
+bucket under `assets/my-paper/` (see "Where large assets go").
 
 `authors[]` also takes `bold: true`, which bolds that name (for co-first authors,
 project leads, corresponding authors). Only the name is bolded, not the
@@ -271,8 +271,8 @@ written as `{zh, en}`**:
   columns: 3,
   items: [ { id: "case01",                       // also keys the saved environment rotation
              model: MS3 + "viewers/scenes/case01/scene.glb",
-             environment: MS3 + "viewers/scenes/case01/environment.png",
-             poster: MS + "scenes/case01.png",
+             environment: MS3 + "viewers/scenes/case01/environment.webp",
+             poster: MS + "scenes/case01.webp",
              workflow: "pages/ccm-workflow/?case=case01" } ] }   // optional; shows a link when set
 
 // Side-by-side viewer pair: a thumbnail strip on top, two resident viewers below.
@@ -284,7 +284,7 @@ written as `{zh, en}`**:
              label: { zh: "案例 1", en: "Case 1" },
              left:  MS3 + "viewers/astra/case01/from_scratch.glb",
              right: MS3 + "viewers/astra/case01/with_mira_scene.glb",
-             poster: MS + "astra/01-case01.png",   // the small image in the strip
+             poster: MS + "astra/01-case01.webp",  // the small image in the strip
              leftLabel:  { zh: "基线", en: "Baseline" },      // optional, has a default
              rightLabel: { zh: "我们的", en: "Ours" } } ] }
 ```
@@ -357,47 +357,48 @@ displacement. Please keep new styles in that key — details in [CLAUDE.md](CLAU
 
 ### Where large assets go
 
-Small images (a few hundred KB — thumbnails, teaser posters) go straight into
-`assets/`. **Do not put bulk video or 3D models in git** — it bloats the repo, and
-GitHub Pages caps files at 100MiB and the whole site at 1GB.
+Not in git. Every video, image, 3D model and PDF the pages show lives in the Cloudflare
+R2 bucket `eden-page-assets` and is served from `https://assets.vast-eden.ai/` through
+Cloudflare's CDN. The repo's `assets/` only keeps the site's own logo, icons, fonts
+and placeholders. (The site deploys to Cloudflare Workers, where one static file can
+be at most 25MiB — the teasers and 3D models are far bigger.)
 
-Animated AVIFs converted from video are the exception: they usually end up a few MB
-each, so they can go straight into `assets/` and deploy with the site (the 122 for
-EdenLive and the three papers live under `assets/`, at the same paths as on R2). Keep
-each one under 25MiB, and give the section a `ratio` (the image's aspect ratio) when
-it goes in a carousel or figure; see "轮播和插图里的动图" in
-CLAUDE.md for how to make them. Everything else large goes to Cloudflare R2:
+**Compress first**: video becomes animated AVIF, images become WebP. Teasers are the
+exception and stay as the original file, unconverted (they need a seek bar and some
+have sound). When an animated image goes in a carousel or figure, give the section a
+`ratio` (the image's aspect ratio). Commands and the quality bar are in the "素材"
+section of CLAUDE.md. The originals stay in the HF datasets `huanngzh/page-assets` and
+`ToRealU/eden-page-assets`, at the same paths; re-encode from those, never from the
+compressed copies.
 
-```
-R2 bucket eden-page-assets (Vast account)  →  assets/<project>/...
-```
-
-Store the base address in a constant and write only relative paths in the entries.
-All of them are at the top of `data/projects.js`:
+Keys mirror the old paths (`assets/<project>/...`). The prefixes are constants at the
+top of `data/projects.js`; entries only write the rest of the path:
 
 ```js
-const ASSETS = 'https://pub-….r2.dev/';   // the bucket's public address; change only this line to switch domain or add a CDN
+const ASSETS = 'https://assets.vast-eden.ai/';   // change only this line to switch domain
 const SW = ASSETS + 'assets/stereo-world/';
 const MS = ASSETS + 'assets/mira-scene/';
 const TH = ASSETS + 'assets/thumbs/';
 // usage: src: SW + "videos/demo.mp4"
 ```
 
+`pages/ccm-workflow/data/manifest.json` and the `og:image` fallback in `index.html`
+repeat the full address, so change them together with `ASSETS`.
+
 Upload with wrangler (run `npx wrangler login` once. If your login can see more than
 one account, pick Vast with `CLOUDFLARE_ACCOUNT_ID` — the ID is in `npx wrangler whoami`):
 
 ```bash
 CLOUDFLARE_ACCOUNT_ID=<Vast account ID> npx wrangler r2 object put \
-  eden-page-assets/assets/<project>/videos/x.mp4 --file videos/x.mp4 \
-  --content-type video/mp4 --cache-control "public, max-age=604800" --remote
+  eden-page-assets/assets/<project>/videos/x.avif --file x.avif --remote \
+  --content-type image/avif --cache-control "public, max-age=604800"
 ```
 
 It uploads one file per call; loop for batches. Two traps: always pass
-`--content-type`, otherwise the object is served as `application/octet-stream`; and
-objects carry a 7-day cache, so **after overwriting a file at the same address,
+`--content-type`, otherwise the file is served as `application/octet-stream`; and
+files are cached for 7 days, so **after overwriting a file at the same address,
 returning readers may see the old one for up to 7 days**. To make a change show up
-immediately, rename the file or add `?v=2` in the data (R2 ignores the query string —
-that is what MultiLive's `?v=dial4` does).
+immediately, upload under a new file name.
 
 ## Deploying
 
