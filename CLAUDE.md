@@ -20,7 +20,7 @@ project_page/
 │   ├── logo.svg          # header 里的标志（由 site.logo 引用，见「标志」一节）
 │   ├── favicon.svg       # 标签页图标（logo 的 16px 版，index.html 里单独引用）
 │   │                     # （列表卡片缩略图不在这里：是生成的示意图，托管在
-│   │                     #   HF 的 assets/thumbs/，见「缩略图」一节）
+│   │                     #   R2 的 assets/thumbs/，见「缩略图」一节）
 │   └── placeholder/*.svg # 占位素材，真素材进来后应逐步删除
 └── README.md             # 面向使用者的替换/部署说明
 ```
@@ -293,13 +293,13 @@ python3 -m http.server 8000     # 然后开 http://localhost:8000/
 入口是 sceneViewer 前 4 张卡片上的「查看 CCM workflow →」（`?case=<id>` 原生支持，
 新标签页打开）。
 
-素材（152 个文件 146MB，含 37 个 GLB / 29 个 PLY 点云）都在 HF 的
+素材（152 个文件 146MB，含 37 个 GLB / 29 个 PLY 点云）都在 R2 桶的
 `assets/mira-scene/3d/workflow/` 下，由 `pages/ccm-workflow/data/manifest.json`
 里的绝对地址引用（不是原站 `data/static-demo-cases/` 那种相对路径）。
 升级原站版本时，把下面这几处重新套一遍即可（`index.html` 的注释里也写了）：
 css/js 路径、manifest 路径、`vendor/` 的三级相对路径、返回链接、标题。
 
-### 缩略图（HF 的 assets/thumbs/）
+### 缩略图（R2 的 assets/thumbs/）
 
 列表卡片的 `thumb` 用**生成的示意图**（gpt-image-2.5-sunburst，lumina-imagen 技能），
 统一风格，一眼能看出这篇论文的输入和输出。地址走 `data/projects.js` 顶部的 `TH` 常量。
@@ -330,14 +330,14 @@ css/js 路径、manifest 路径、`vendor/` 的三级相对路径、返回链接
 - **按原分辨率存盘（2400×1500），不要预先缩小成 288px。** 缩了在高分屏上会糊，
   交给浏览器按 CSS 缩放。体积靠 JPEG 控制：quality 90 约 260~320KB、PSNR 46dB
   肉眼无损；再往下压到 82 能省 30% 但线条边缘会开始起噪点。
-  这个尺寸算「重素材」，跟视频一样托管在 HF、不进 git。
+  这个尺寸算「重素材」，跟视频一样放在 R2、不进 git。
 
 **光栅图适配不了深色主题** —— 这是相比 SVG 唯一的退步。`<img>` 拿不到页面的
 CSS 变量，没法像以前那样靠半透明透出卡片底色。所以底色统一定在暖白
 （实测两张图四角都落在 245,243,249 附近），在深色主题下会是一块亮色卡片。
 这是接受的取舍：清晰表达方法 > 完美融入两种主题。
 
-生成和落盘（`TH` 对应 HF 上的 `assets/thumbs/`）：
+生成和落盘（`TH` 对应 R2 桶里的 `assets/thumbs/`）：
 
 ```bash
 # 1. 生成（prompt 写进文件，避免 shell 转义问题）
@@ -352,8 +352,10 @@ im=Image.open('/tmp/raw.png').convert('RGB'); W,H=im.size
 nh=int(W/(16/10)); top=(H-nh)//2
 im.crop((0,top,W,top+nh)).save('/tmp/out.jpg','JPEG',quality=90,optimize=True,progressive=True)"
 
-# 3. 传 HF（token 只从环境变量读，别打在命令行上）
-hf upload huanngzh/page-assets <本地目录> assets/thumbs --repo-type=dataset
+# 3. 传 R2（登录和账号 ID 见 README「大素材放哪」）
+CLOUDFLARE_ACCOUNT_ID=<Vast 账号 ID> npx wrangler r2 object put \
+  eden-page-assets/assets/thumbs/<名字>.jpg --file /tmp/out.jpg \
+  --content-type image/jpeg --cache-control "public, max-age=604800" --remote
 ```
 
 **验收**：别只看大图。把成品按 288px（卡片）和 62px（切换器）两个真实尺寸缩一遍
@@ -410,6 +412,36 @@ for s in (34,26,16):
   由 `initCarousel` 在翻到那一页时 `setAttribute('src', ...)`。
   用 `setAttribute` 而不是 `v.src = ...`：后者读回来会变成绝对地址，
   `video[data-src]` 选择器和「填过没有」的判断都不好写。
+
+### 素材托管（Cloudflare R2）
+
+视频、三维模型、缩略图这些重素材都在 Cloudflare R2 的 **`eden-page-assets`** 桶里
+（Vast 账号，APAC，313 个文件约 2.1GB），不进 git。key 沿用原先 HF dataset 的路径
+（`assets/<项目>/...`），所以那两个 dataset（`huanngzh/page-assets`、
+`ToRealU/eden-page-assets`）现在只是原件备份，页面不再引用。
+
+**为什么从 HF 搬走**（2026-10）：每个 `resolve/main` 请求都要先 302 到美国的 CDN，
+跳转地址带签名、每次都不一样，浏览器缓存不住，回访也要全量重下；大陆还直连不上。
+
+公开地址写在三处，**换域名时三处一起改**：
+
+- `data/projects.js` 顶部的 `ASSETS` 常量（`SW` / `MS` / `TH` / `ML` / `EL` 都从它派生）
+- `pages/ccm-workflow/data/manifest.json` 里的完整地址（JSON 引用不了常量）
+- `index.html` 的 `og:image` 兜底值（爬虫要绝对地址）
+
+几个坑：
+
+- **现在用的是 r2.dev 开发地址**：Cloudflare 对它限流、不走 CDN 缓存，只能过渡。
+  正式域名得绑在 Vast 账号里的某个 zone 上 —— `vast-eden.ai` 的 DNS 在 Route 53，
+  不在 Cloudflare，没法直接用 `assets.vast-eden.ai`。
+- **桶上的 CORS 规则不能删**（GET/HEAD，任意来源）。`<video>` / `<img>` 用不着它，
+  但三维查看器用 `fetch` 拉 GLB、用 anonymous CORS 加载全景图，CCM 页也要 fetch
+  JSON 和 mask。删了这三处会一起挂，页面其余部分照常，很难第一时间发现。
+- 对象都带 `Cache-Control: public, max-age=604800`。覆盖上传同名文件后，老读者最多
+  7 天内还会看到旧的；要立即生效就换文件名或加 `?v=`（R2 忽略查询串）。
+- 上传命令见 README「大素材放哪」，`--content-type` 必须给。
+- **R2 只解决了跳转和缓存，跨境链路本身还是慢**：从开发机测 Cloudflare 自家的
+  测速点也只有约 250KB/s。要给大陆读者真正提速，得在前面再套国内 CDN（要 ICP 备案）。
 
 ## 样式系统（css/style.css）
 
@@ -568,11 +600,9 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
   `teaser` / 两张流程图 / 四节应用的 carousel / `thumb` 都还指向
   `assets/placeholder/*.svg`，数据里每处都留了 `TODO:` 注释。
   链接（论文/代码/权重/demo）也还是 `href: "#"`。
-- **⚠️ hero 条带的素材现在指向 `artifacts/`，只能本地预览。** 常量是
-  `data/projects.js` 顶部的 `EL`，26 个 clip 约 330MB。`artifacts/` 在
-  `.gitignore` 里（不会进仓库），所以**部署到 Pages 之后这些地址全是 404**。
-  上线前要把它们传到 HF 的 `assets/edenlive/wipe-480/` 下，再把 `EL` 改成那个
-  `resolve/main` 地址（和 `SW` / `MS` 同一个套路），数据里的相对路径不用动。
+- **EdenLive 的 61 个视频**（条带 27 个 + 宣传片 + 四节应用 33 个）在 R2 的
+  `assets/edenlive/clips/` 下，由 `data/projects.js` 顶部的 `EL` 常量指向；
+  短码和 `artifacts/` 原文件名的对照在 `data/edenlive-clips.md`。
   两张流程图要照 `artifacts/.../Images_attachments/` 里那两张（`-realtime-v4` 和
   `-interaction`）重画成站点配色，不要直接用原图 —— 它们是绿色系，和全站的紫/青不搭。
   另外文案里 `>24 fps`、分钟级、百毫秒级延迟这几个数字是对外口径的下限，
@@ -583,19 +613,11 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
   遗留一点：原站那两节的 case 列表是从 `manifest.json` 动态拉的，我们写死在
   `data/projects.js` 里 —— 他们加了新 case，我们这边不会自动跟上。
   `pages/ccm-workflow/` 同理，它的 `data/manifest.json` 是抓下来改过地址的快照。
-- **StereoWorld 的素材托管在我们自己的 HF dataset 上**（44 个视频 + 3 张图，约
-  305MB）：`huanngzh/page-assets` 的 `assets/stereo-world/` 下，按
-  `videos/ images/ stereo_video/ stereo_depth/ flex_demo/ ar_demo/ inpaint_demo/`
-  分目录。仓库里只留 `data/projects.js` 顶部的 `SW` 常量指向它，二进制文件一个
-  没进 git。URL 用 `resolve/main`（直出文件）而不是 `blob/main`（网页预览）；
-  HF 会 302 到带签名、有有效期的 CDN 地址，**别把 302 之后的地址抄进数据里**。
-  换回本地托管的做法写在 `SW` 的注释里。
-- **Mira-Scene 的素材同样在那个 dataset 上**（29 个文件，约 52MB）：
-  `assets/mira-scene/` 下按 `images/ videos/ simulation/{blender,isaac}/ scenes/ astra/`
-  分目录，由 `MS` 常量指向。`scenes/` 里的文件名就是原站 manifest 的 case id，
-  `astra/` 加了 `01..06` 前缀保留原站的展示顺序。
-  注：`assets/stereoworld/` 下还留着那 3 张图的本地副本（约 322KB），但页面已经
-  不引用它们了 —— 想清干净可以删掉，留着当离线兜底也行。
+- **⚠️ 素材的公开地址还是 r2.dev 开发地址**（见上面「素材托管」一节）。
+  上线前要定一个正式域名，绑到 R2 桶上，再把那三处地址一起换掉。
+  StereoWorld（`SW`）、Mira-Scene（`MS`）、MultiLive（`ML`）的目录划分见
+  `data/projects.js` 顶部各常量的注释。Mira-Scene 的 `scenes/` 里文件名就是原站
+  manifest 的 case id，`astra/` 加了 `01..06` 前缀保留原站的展示顺序。
 - **没有在浏览器里视觉验证过。** 到目前为止的检查都是静态的（`node --check`、
   CSS 括号平衡、CSS 变量收支、class/id 交叉引用、路由分发和 i18n 回落的 headless
   单测）。视觉效果需要人工过目。

@@ -1,6 +1,6 @@
 # EdenLive clip codes
 
-HF 上 `assets/edenlive/clips/<code>.mp4` 与本地 `artifacts/` 原文件的对照。
+R2 桶 eden-page-assets 里 `assets/edenlive/clips/<code>.mp4` 与本地 `artifacts/` 原文件的对照。
 页面只引用短码；原文件名留在本地，不上传。
 
 | code | local |

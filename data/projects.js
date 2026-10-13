@@ -15,23 +15,24 @@
  * 不用起本地服务器（file:// 下 fetch json 会被浏览器拦掉）。
  * ========================================================================== */
 
-/* StereoWorld 的素材（44 个视频 + 3 张图，合计约 305MB）托管在我们自己的
- * HuggingFace dataset 上，没有拷进本仓库 —— 那么大的二进制文件进 git 会把仓库
- * 拖垮，GitHub Pages 也有 1GB 软限。托管在自己账号下，不像之前外链原作者的
- * 项目页那样、别人改路径我们就全挂。
+/* 页面素材（视频、图片、三维模型）都放在 Cloudflare R2 的 eden-page-assets 桶里
+ * （Vast 账号，APAC），不进本仓库。桶里的 key 和原先 HF dataset 里的路径一一对应，
+ * 都以 assets/ 开头。
  *
- * 仓库：https://huggingface.co/datasets/huanngzh/page-assets
- * 目录：assets/stereo-world/{videos,images,stereo_video,stereo_depth,flex_demo,ar_demo,inpaint_demo}/
+ * 2026-10 从 HuggingFace（huanngzh/page-assets、ToRealU/eden-page-assets）搬过来：
+ * HF 每个请求都要先 302 到美国的 CDN，跳转地址每次都不一样（浏览器缓存不住），
+ * 大陆还直连不上。R2 上的对象都带 Cache-Control: public, max-age=604800。
  *
- * URL 必须用 `resolve/main`（直出文件本体），不是 `blob/main`（那是网页版预览）。
- * HF 会 302 到一个带签名的 CDN 地址，签名有有效期，所以**别把 302 之后的地址
- * 抄进来**，只写下面这个 resolve 形式的稳定地址。
- *
- * 想改成本地托管：把文件拉到 assets/stereoworld/ 下（保持子目录结构），
- * 再把 SW 改成 'assets/stereoworld/' 即可，后面的路径都不用动。 */
-const SW = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/stereo-world/';
+ * ASSETS 是桶的公开地址，换域名、前面套 CDN 都只改这一行。另有两处写死了完整地址，
+ * 要一起换：pages/ccm-workflow/data/manifest.json、index.html 的 og:image。
+ * 现在用的是 r2.dev 开发地址：Cloudflare 对它限流，也不走 CDN 缓存，
+ * 正式上线前要换成绑在 Cloudflare zone 上的自定义域名。 */
+const ASSETS = 'https://pub-9ddd2b0bd15e4006998cffc067402d86.r2.dev/';
 
-/* Mira-Scene 的素材同理，托管在同一个 dataset 的 assets/mira-scene/ 下：
+/* StereoWorld：assets/stereo-world/{videos,images,stereo_video,stereo_depth,flex_demo,ar_demo,inpaint_demo}/ */
+const SW = ASSETS + 'assets/stereo-world/';
+
+/* Mira-Scene 的素材在 assets/mira-scene/ 下：
  *   images/      teaser.jpg、layout_representation.png、pipeline.gif
  *   videos/      demo.mp4（teaser）
  *   simulation/  blender/sim1..4.mp4、isaac/interaction1..3.mp4
@@ -39,15 +40,15 @@ const SW = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/as
  *   astra/       6 张 Astra 对比案例的缩略图（01..06 前缀 = 原站的展示顺序）
  *
  * 这些是「轻」素材（图和视频）。三维模型另算，见下面的 MS3。 */
-const MS = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/mira-scene/';
+const MS = ASSETS + 'assets/mira-scene/';
 
 /* 三维素材（GLB 场景模型 + 环境全景图 + CCM workflow 的中间结果），
- * 155 个文件约 730MB，同一个 dataset 的 assets/mira-scene/3d/ 下：
+ * 155 个文件约 730MB，在 assets/mira-scene/3d/ 下：
  *   viewers/scenes/<caseId>/scene.glb + environment.png   12 个可旋转场景
  *   viewers/astra/<caseId>/{from_scratch,with_mira_scene}.glb   6 组并排对比
  *   workflow/<caseId>/...                                 CCM 分步工作流那一页
  *
- * 这些模型单个 10~44MB，一律「点了才下载」：section 默认只渲染预览图，
+ * 这些模型单个 7~78MB，一律「点了才下载」：section 默认只渲染预览图，
  * 读者点「载入 3D 场景」才动态 import three.js 并抓 GLB。
  * 查看器实现在 js/viewers/，接线在 js/app.js 的 initSceneViewers()。 */
 const MS3 = MS + '3d/';
@@ -55,21 +56,16 @@ const MS3 = MS + '3d/';
 /* 列表卡片的缩略图。之前是手画的 SVG，几 KB、能靠半透明自适应深浅色主题，
  * 但太朴素、几张之间看不出差别，也说不清这篇论文在做什么。现在换成生成的
  * 示意图（统一风格，见 CLAUDE.md 的「缩略图」一节），单张 260~320KB，
- * 所以跟其他重素材一样托管在 HF、不进 git。
+ * 所以跟其他重素材一样放在 R2、不进 git。
  *
  * 原图 2400x1500（= 卡片的 16:10）一律按原分辨率保留，不预先缩小 ——
  * 缩到 288px 存盘在高分屏和详情页切换器上都会糊，交给浏览器按 CSS 缩放。 */
-const TH = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/thumbs/';
+const TH = ASSETS + 'assets/thumbs/';
 
-/* MultiLive 的 19 个页面素材（13 段视频、5 张图片、1 份 PDF，约 80 MiB）
- * 托管在 ToRealU/eden-page-assets 的 assets/multilive/ 下。
- * 使用 resolve/main 稳定地址，视频分段请求由 HF 处理。
- * 需要离线预览时，把 ML 改成 'assets/multilive/'（本地视频拖动需要
- * 支持 Range 的服务器）。 */
-const ML = 'https://huggingface.co/datasets/ToRealU/eden-page-assets/resolve/main/assets/multilive/';
+/* MultiLive 的 19 个页面素材（13 段视频、5 张图片、1 份 PDF，约 80 MiB）。 */
+const ML = ASSETS + 'assets/multilive/';
 
-/* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 960MB）
- * 托管在 huanngzh/page-assets 的 assets/edenlive/clips/ 下，resolve/main 直出。
+/* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 985MB）在 assets/edenlive/clips/ 下。
  * 文件名是随机短码，不带分辨率和模型名。短码与本地 artifacts/ 原文件名的
  * 对照在 data/edenlive-clips.md。
  *
@@ -81,6 +77,7 @@ const ML = 'https://huggingface.co/datasets/ToRealU/eden-page-assets/resolve/mai
  * 后来换过一批：拿掉 doodle-jump、elda 的 wan22、合金弹头、光剑切箱子、草原疾驰，
  * 补上运河小船 / 提灯划小船、闪身步 / 地下遗迹 / 火星车漫游，外加 025 的 wan21。
  * 奥特曼飞行小游戏渲过但不稳定，没有放进条带。第一行 13 格、第二行 14 格。 */
+const EL = ASSETS + 'assets/edenlive/clips/';
 
 window.SITE_DATA = {
   /* ---------------------------------------------------------------- 站点级 */
@@ -220,35 +217,35 @@ window.SITE_DATA = {
       backdrop: {
         rows: [
           [
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/c901fab6.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/f4bb3f37.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/afb26e68.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/4c37c8d1.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/34bd577a.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/948449bc.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ca38f196.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/6d9632a9.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1cbd0d35.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/c6e8434c.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/0890969e.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/71585601.mp4",
+            EL + "c901fab6.mp4",
+            EL + "f4bb3f37.mp4",
+            EL + "afb26e68.mp4",
+            EL + "4c37c8d1.mp4",
+            EL + "34bd577a.mp4",
+            EL + "948449bc.mp4",
+            EL + "ca38f196.mp4",
+            EL + "6d9632a9.mp4",
+            EL + "1cbd0d35.mp4",
+            EL + "c6e8434c.mp4",
+            EL + "0890969e.mp4",
+            EL + "71585601.mp4",
           ],
           [
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/8da956a9.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/4d69026d.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/075191ee.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/d0a94370.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/cffd5edf.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/8dd568c5.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/2cd581b1.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/5c88a24a.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e2521235.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ee67545b.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/00282906.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/801ad06f.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/a4195340.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/92849ce6.mp4",
-            "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/7eb84745.mp4",
+            EL + "8da956a9.mp4",
+            EL + "4d69026d.mp4",
+            EL + "075191ee.mp4",
+            EL + "d0a94370.mp4",
+            EL + "cffd5edf.mp4",
+            EL + "8dd568c5.mp4",
+            EL + "2cd581b1.mp4",
+            EL + "5c88a24a.mp4",
+            EL + "e2521235.mp4",
+            EL + "ee67545b.mp4",
+            EL + "00282906.mp4",
+            EL + "801ad06f.mp4",
+            EL + "a4195340.mp4",
+            EL + "92849ce6.mp4",
+            EL + "7eb84745.mp4",
           ],
         ],
       },
@@ -285,7 +282,7 @@ window.SITE_DATA = {
 
       /* 宣传片。TL;DR 之后、摘要之前的那一段。 */
       teaser: {
-        src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e64ab20b.mp4",
+        src: EL + "e64ab20b.mp4",
       },
 
       /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
@@ -558,15 +555,15 @@ window.SITE_DATA = {
           perPage: 1,
           layout: "centered",
           items: [
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/bafe32b9.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/cf2421f7.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/edf33f08.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/56ac4b6b.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e60f6083.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1c70aa33.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/bb6c2841.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/e7d6e8a9.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/8811e6ec.mp4", controls: true },
+            { src: EL + "bafe32b9.mp4", controls: true },
+            { src: EL + "cf2421f7.mp4", controls: true },
+            { src: EL + "edf33f08.mp4", controls: true },
+            { src: EL + "56ac4b6b.mp4", controls: true },
+            { src: EL + "e60f6083.mp4", controls: true },
+            { src: EL + "1c70aa33.mp4", controls: true },
+            { src: EL + "bb6c2841.mp4", controls: true },
+            { src: EL + "e7d6e8a9.mp4", controls: true },
+            { src: EL + "8811e6ec.mp4", controls: true },
           ],
         },
         {
@@ -586,19 +583,19 @@ window.SITE_DATA = {
           perPage: 1,
           layout: "centered",
           items: [
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ae454d05.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/2819fbee.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/65e47fb6.mp4", controls: true },
+            { src: EL + "ae454d05.mp4", controls: true },
+            { src: EL + "2819fbee.mp4", controls: true },
+            { src: EL + "65e47fb6.mp4", controls: true },
             // 新增的成片：DMD 720p 优先，wan21 14b 480p 排在后面
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/efd72737.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/de031217.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/33bb38e6.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/096ca570.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/3ebf1fa9.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/3d9a9e41.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/67ead996.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/32b05736.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/537bd181.mp4", controls: true },
+            { src: EL + "efd72737.mp4", controls: true },
+            { src: EL + "de031217.mp4", controls: true },
+            { src: EL + "33bb38e6.mp4", controls: true },
+            { src: EL + "096ca570.mp4", controls: true },
+            { src: EL + "3ebf1fa9.mp4", controls: true },
+            { src: EL + "3d9a9e41.mp4", controls: true },
+            { src: EL + "67ead996.mp4", controls: true },
+            { src: EL + "32b05736.mp4", controls: true },
+            { src: EL + "537bd181.mp4", controls: true },
           ],
         },
         {
@@ -617,12 +614,12 @@ window.SITE_DATA = {
           perPage: 1,
           layout: "centered",
           items: [
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/c7560051.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1515283e.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/60e3c4d9.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/6becd8f3.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/72a254b9.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/2f8eeb65.mp4", controls: true },
+            { src: EL + "c7560051.mp4", controls: true },
+            { src: EL + "1515283e.mp4", controls: true },
+            { src: EL + "60e3c4d9.mp4", controls: true },
+            { src: EL + "6becd8f3.mp4", controls: true },
+            { src: EL + "72a254b9.mp4", controls: true },
+            { src: EL + "2f8eeb65.mp4", controls: true },
           ],
         },
         {
@@ -640,12 +637,12 @@ window.SITE_DATA = {
           perPage: 1,
           layout: "centered",
           items: [
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/748848e0.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/ef7f3a46.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/80ac72ba.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/1fb017f8.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/29e08b3c.mp4", controls: true },
-            { src: "https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/edenlive/clips/5a96da28.mp4", controls: true },
+            { src: EL + "748848e0.mp4", controls: true },
+            { src: EL + "ef7f3a46.mp4", controls: true },
+            { src: EL + "80ac72ba.mp4", controls: true },
+            { src: EL + "1fb017f8.mp4", controls: true },
+            { src: EL + "29e08b3c.mp4", controls: true },
+            { src: EL + "5a96da28.mp4", controls: true },
           ],
         },
 
