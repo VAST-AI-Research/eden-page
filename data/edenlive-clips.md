@@ -1,7 +1,7 @@
 # EdenLive clip codes
 
 HF dataset `huanngzh/page-assets` 里 `assets/edenlive/clips/<code>.mp4` 与本地 `artifacts/` 原文件的对照。
-页面用的是仓库 `assets/edenlive/clips/` 下的同短码 `.avif` 动图；宣传片 `e64ab20b` 例外，用的是外部存储里的原片。
+页面用的是 R2 桶 `eden-page-assets` 里同一路径下的同短码文件：宣传片 `e64ab20b.mp4` 是原片，其余是 `.avif` 动图。
 页面只引用短码；原文件名留在本地，不上传。
 
 | code | local |

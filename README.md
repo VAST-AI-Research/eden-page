@@ -101,8 +101,8 @@ Add an object to the `papers` array in `data/projects.js`:
     en: "One line on what it does and why it is better.",
   },
   // List-card thumbnail, must be 16:10. The two existing papers use generated
-  // diagrams (one shared style, in assets/thumbs/ via the TH constant at the top
-  // of the file). See the "缩略图" section of CLAUDE.md for how to make one.
+  // diagrams (one shared style, in the asset bucket via the TH constant at the
+  // top of the file). See the "缩略图" section of CLAUDE.md for how to make one.
   thumb: TH + "my-project.jpg",
 
   // Venue line, centered under the title. Delete these lines if there is no
@@ -144,8 +144,8 @@ Add an object to the `papers` array in `data/projects.js`:
 }
 ```
 
-Array order is list order — move an entry up to feature it. Put assets under
-`assets/my-paper/`.
+Array order is list order — move an entry up to feature it. Upload its assets to the
+bucket under `assets/my-paper/` (see "Where large assets go").
 
 `authors[]` also takes `bold: true`, which bolds that name (for co-first authors,
 project leads, corresponding authors). Only the name is bolded, not the
@@ -271,7 +271,7 @@ written as `{zh, en}`**:
   columns: 3,
   items: [ { id: "case01",                       // also keys the saved environment rotation
              model: MS3 + "viewers/scenes/case01/scene.glb",
-             environment: MS + "3d/viewers/scenes/case01/environment.webp",
+             environment: MS3 + "viewers/scenes/case01/environment.webp",
              poster: MS + "scenes/case01.webp",
              workflow: "pages/ccm-workflow/?case=case01" } ] }   // optional; shows a link when set
 
@@ -357,36 +357,48 @@ displacement. Please keep new styles in that key — details in [CLAUDE.md](CLAU
 
 ### Where large assets go
 
-Everything the pages show goes under `assets/<project>/` and deploys with the site —
-**compressed first**: video becomes animated AVIF, images become WebP. Teasers are
-the exception and stay as the original file, unconverted (they need a seek bar and
-some have sound). Keep each file under
-25MiB, the per-file limit for Cloudflare Workers static assets, and the whole site
-under GitHub Pages' 1GB. When an animated image goes in a carousel or figure, give
-the section a `ratio` (the image's aspect ratio). Commands and the quality bar are in
-the "素材" section of CLAUDE.md.
+Not in git. Every video, image, 3D model and PDF the pages show lives in the Cloudflare
+R2 bucket `eden-page-assets` and is served from `https://assets.vast-eden.ai/` through
+Cloudflare's CDN. The repo's `assets/` only keeps the site's own logo, icons, fonts
+and placeholders. (The site deploys to Cloudflare Workers, where one static file can
+be at most 25MiB — the teasers and 3D models are far bigger.)
 
-The originals stay in the HF datasets `huanngzh/page-assets` and
-`ToRealU/eden-page-assets`, at the same paths. Re-encode from those, never from the
+**Compress first**: video becomes animated AVIF, images become WebP. Teasers are the
+exception and stay as the original file, unconverted (they need a seek bar and some
+have sound). When an animated image goes in a carousel or figure, give the section a
+`ratio` (the image's aspect ratio). Commands and the quality bar are in the "素材"
+section of CLAUDE.md. The originals stay in the HF datasets `huanngzh/page-assets` and
+`ToRealU/eden-page-assets`, at the same paths; re-encode from those, never from the
 compressed copies.
 
-3D models, the CCM workflow assets and the MultiLive PDF are the exception: about
-730MB together, too much for the repo, so they sit in external storage. So do the
-teasers over a per-file limit (EdenLive's 117MB, MultiLive's 38MB). The prefixes
-are constants at the top of `data/projects.js`; entries only write the rest of the path:
+Keys mirror the old paths (`assets/<project>/...`). The prefixes are constants at the
+top of `data/projects.js`; entries only write the rest of the path:
 
 ```js
-const ASSETS = 'https://…/';                 // external storage: 3D models, CCM, PDF, oversized teasers
-const MS3 = ASSETS + 'assets/mira-scene/3d/';
-const SW = 'assets/stereo-world/';           // everything else is in the repo
-const MS = 'assets/mira-scene/';
-const TH = 'assets/thumbs/';
+const ASSETS = 'https://assets.vast-eden.ai/';   // change only this line to switch domain
+const SW = ASSETS + 'assets/stereo-world/';
+const MS = ASSETS + 'assets/mira-scene/';
+const TH = ASSETS + 'assets/thumbs/';
 // usage: src: SW + "videos/demo.mp4"
 ```
 
-`pages/ccm-workflow/data/manifest.json` repeats the `ASSETS` address in full, so
-change both together. That host must allow cross-origin GET — the 3D viewers and the
-CCM page `fetch` from it.
+`pages/ccm-workflow/data/manifest.json` and the `og:image` fallback in `index.html`
+repeat the full address, so change them together with `ASSETS`.
+
+Upload with wrangler (run `npx wrangler login` once. If your login can see more than
+one account, pick Vast with `CLOUDFLARE_ACCOUNT_ID` — the ID is in `npx wrangler whoami`):
+
+```bash
+CLOUDFLARE_ACCOUNT_ID=<Vast account ID> npx wrangler r2 object put \
+  eden-page-assets/assets/<project>/videos/x.avif --file x.avif --remote \
+  --content-type image/avif --cache-control "public, max-age=604800"
+```
+
+It uploads one file per call; loop for batches. Two traps: always pass
+`--content-type`, otherwise the file is served as `application/octet-stream`; and
+files are cached for 7 days, so **after overwriting a file at the same address,
+returning readers may see the old one for up to 7 days**. To make a change show up
+immediately, upload under a new file name.
 
 ## Deploying
 

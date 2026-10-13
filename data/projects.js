@@ -1,5 +1,5 @@
 /* =============================================================================
- * 站点内容 —— 你平时只需要改这个文件（以及 assets/ 里的图片视频）
+ * 站点内容 —— 你平时只需要改这个文件（图片视频在 R2，见下面 ASSETS 的注释）
  * -----------------------------------------------------------------------------
  * 双语写法：任何面向读者的字段都可以写成 { zh: "中文", en: "English" }。
  * 也可以直接写一个字符串 —— 那就两种语言共用，适合人名、数字、代码、URL。
@@ -15,19 +15,18 @@
  * 不用起本地服务器（file:// 下 fetch json 会被浏览器拦掉）。
  * ========================================================================== */
 
-/* 页面素材都在本仓库的 assets/ 下，跟站点一起部署；下面的前缀都是相对 index.html 的路径。
- * 进仓库前都压过：视频转成动态 AVIF，图片转 WebP，单个文件不超过 25MiB
- * （Cloudflare Workers 静态资源的上限）。宣传片例外：用原片、不转码。做法见 CLAUDE.md 的「素材」一节。
+/* 页面素材（视频、动图、图片、三维模型、PDF）都在 Cloudflare R2 的 eden-page-assets 桶里，
+ * 经 assets.vast-eden.ai 走 Cloudflare CDN 访问，不进仓库。桶里的 key 都以 assets/ 开头，
+ * 下面的常量就是这几个目录的完整地址。上传和缓存的做法见 CLAUDE.md 的「素材」一节。
+ * 进桶之前都压过：视频转成动态 AVIF，图片转 WebP；宣传片例外，用原片、不转码。
  * 原件在 HuggingFace dataset（huanngzh/page-assets、ToRealU/eden-page-assets）里，路径和
  * 这里一一对应 —— 要换参数重转就从那边取，别拿压过的再压一遍。
  *
- * 例外是三维模型（GLB / PLY）、CCM workflow 页的素材、MultiLive 的论文 PDF，以及超过
- * 单文件上限的两段宣传片原片（EdenLive、MultiLive），放在外部存储，地址是 ASSETS。
  * pages/ccm-workflow/data/manifest.json 里也写死了同一个地址，换的话两处一起换。 */
-const ASSETS = 'https://pub-9ddd2b0bd15e4006998cffc067402d86.r2.dev/';
+const ASSETS = 'https://assets.vast-eden.ai/';
 
 /* StereoWorld：assets/stereo-world/{videos,images,stereo_video,stereo_depth,flex_demo,ar_demo,inpaint_demo}/ */
-const SW = 'assets/stereo-world/';
+const SW = ASSETS + 'assets/stereo-world/';
 
 /* Mira-Scene 的素材在 assets/mira-scene/ 下：
  *   images/      teaser.webp、layout_representation.webp、pipeline.avif（动图）
@@ -35,21 +34,19 @@ const SW = 'assets/stereo-world/';
  *   simulation/  blender/sim1..4.avif、isaac/interaction1..3.avif
  *   scenes/      12 张场景查看器的预览图（文件名 = manifest 里的 case id）
  *   astra/       6 张 Astra 对比案例的缩略图（01..06 前缀 = 原站的展示顺序）
- *   3d/viewers/scenes/<caseId>/environment.webp   场景查看器的环境全景图
  *
- * 三维模型另算，见下面的 MS3。 */
-const MS = 'assets/mira-scene/';
+ * 三维素材另算，见下面的 MS3。 */
+const MS = ASSETS + 'assets/mira-scene/';
 
-/* 三维模型（GLB）和 CCM workflow 的中间结果，在外部存储的 assets/mira-scene/3d/ 下：
- *   viewers/scenes/<caseId>/scene.glb                          12 个可旋转场景
+/* 三维素材和 CCM workflow 的中间结果，在 assets/mira-scene/3d/ 下：
+ *   viewers/scenes/<caseId>/{scene.glb,environment.webp}       12 个可旋转场景 + 环境全景图
  *   viewers/astra/<caseId>/{from_scratch,with_mira_scene}.glb  6 组并排对比
  *   workflow/<caseId>/...                                      CCM 分步工作流那一页
- * 环境全景图不在这里，在仓库（见上面 MS）。
  *
  * 这些模型单个 7~78MB，一律「点了才下载」：section 默认只渲染预览图，
  * 读者点「载入 3D 场景」才动态 import three.js 并抓 GLB。
  * 查看器实现在 js/viewers/，接线在 js/app.js 的 initSceneViewers()。 */
-const MS3 = ASSETS + 'assets/mira-scene/3d/';
+const MS3 = MS + '3d/';
 
 /* 列表卡片的缩略图。之前是手画的 SVG，几 KB、能靠半透明自适应深浅色主题，
  * 但太朴素、几张之间看不出差别，也说不清这篇论文在做什么。现在换成生成的
@@ -57,15 +54,15 @@ const MS3 = ASSETS + 'assets/mira-scene/3d/';
  *
  * 原图 2400x1500（= 卡片的 16:10）一律按原分辨率保留，不预先缩小 ——
  * 缩到 288px 存盘在高分屏和详情页切换器上都会糊，交给浏览器按 CSS 缩放。 */
-const TH = 'assets/thumbs/';
+const TH = ASSETS + 'assets/thumbs/';
 
-/* MultiLive 的页面素材（12 张动图、5 张图片）。宣传片和论文 PDF 在外部存储（见 teaser 和 links）。 */
-const ML = 'assets/multilive/';
+/* MultiLive 的页面素材（宣传片、12 张动图、5 张图片、论文 PDF）。 */
+const ML = ASSETS + 'assets/multilive/';
 
 /* EdenLive 的素材在 assets/edenlive/clips/ 下。文件名是随机短码，不带分辨率和模型名。
  * 短码与本地 artifacts/ 原文件名的对照在 data/edenlive-clips.md。
  *
- * 宣传片 e64ab20b.mp4 是原片，在外部存储（见 teaser）；其余都是同名的 <短码>.avif 动图（60 张共 153MB）：
+ * 宣传片 e64ab20b.mp4 是原片；其余都是同名的 <短码>.avif 动图（60 张共 153MB）：
  *   作品带 27 格：clip 前 12 秒（5 秒 wipe + 7 秒生成画面）缩到 500×288，每张约 190KB。
  *     27 路 832×480、约 4Mbps 的视频同时播，带宽供不上。生成命令见 CLAUDE.md「滚动条带」。
  *   四节应用轮播 33 张：整段转，见 app-game 的注释。
@@ -77,7 +74,7 @@ const ML = 'assets/multilive/';
  * 后来换过一批：拿掉 doodle-jump、elda 的 wan22、合金弹头、光剑切箱子、草原疾驰，
  * 补上运河小船 / 提灯划小船、闪身步 / 地下遗迹 / 火星车漫游，外加 025 的 wan21。
  * 奥特曼飞行小游戏渲过但不稳定，没有放进条带。第一行 12 格、第二行 15 格。 */
-const EL = 'assets/edenlive/clips/';   // 仓库里的动图，相对 index.html
+const EL = ASSETS + 'assets/edenlive/clips/';
 
 window.SITE_DATA = {
   /* ---------------------------------------------------------------- 站点级 */
@@ -195,11 +192,11 @@ window.SITE_DATA = {
             "in real time (24 fps or higher).",
       },
       date: "2026-10",
-      /* 首页卡片的封面。别的条目用的是 HF 上的示意图，这个是拿 088（第一人称
+      /* 首页卡片的封面。别的条目用的是生成的示意图，这个是拿 088（第一人称
        * 冰冻枪）擦除片的首帧裁成 16:10 做的 —— 左边 proxy、右边成片，本来就
        * 把 EdenLive 在做的事画在一张图里了。文字压在左半边，那边加了一层蒙版。
        * 重做见 scripts/cover.py。 */
-      thumb: "assets/edenlive/cover.jpg",
+      thumb: ASSETS + "assets/edenlive/cover.jpg",
       keywords: [
         "generative rendering",
         "real-time video generation",
@@ -281,10 +278,9 @@ window.SITE_DATA = {
         en: "EdenLive will be open-sourced by 2026.10.18!",
       },
 
-      /* 宣传片。TL;DR 之后、摘要之前的那一段。带声音，所以仍是视频，用原片、不转码。
-       * 原片 117MB，超过 GitHub 单文件 100MB 的上限，进不了仓库，放在外部存储。 */
+      /* 宣传片。TL;DR 之后、摘要之前的那一段。带声音，所以仍是视频，用原片、不转码（117MB）。 */
       teaser: {
-        src: ASSETS + "assets/edenlive/clips/e64ab20b.mp4",
+        src: EL + "e64ab20b.mp4",
       },
 
       /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
@@ -362,8 +358,8 @@ window.SITE_DATA = {
                 "<p class=\"fn-note\"><sup class=\"fn\">*</sup> Single-GPU deployment applies to the 5B model (720P).</p>",
           },
           src: {
-            zh: "assets/edenlive/pipeline-zh.svg",
-            en: "assets/edenlive/pipeline-en.svg",
+            zh: ASSETS + "assets/edenlive/pipeline-zh.svg",
+            en: ASSETS + "assets/edenlive/pipeline-en.svg",
           },
           caption: {
             zh: "<b>整体流程。</b>输入来源（代码 Agent / 引擎工作台 / 已有视频）→ " +
@@ -405,8 +401,8 @@ window.SITE_DATA = {
                 "health bars, skill cooldowns, NPC state, and success or failure feedback.</p>",
           },
           src: {
-            zh: "assets/edenlive/interaction-zh.svg",
-            en: "assets/edenlive/interaction-en.svg",
+            zh: ASSETS + "assets/edenlive/interaction-zh.svg",
+            en: ASSETS + "assets/edenlive/interaction-en.svg",
           },
           caption: {
             zh: "<b>交互回路。</b>用户操作 → 引擎更新状态 → proxy 帧流 → " +
@@ -766,13 +762,13 @@ window.SITE_DATA = {
       },
 
       links: [
-        { label: "PDF", href: ASSETS + "assets/multilive/paper.pdf", icon: "paper" },
+        { label: "PDF", href: ML + "paper.pdf", icon: "paper" },
         { label: "Code", href: "https://github.com/VAST-AI-Research/MultiLive", icon: "github" },
       ],
 
-      // 宣传片用原片、不转码。38MB 超过 Workers 静态资源单个文件 25MiB 的上限，放在外部存储
+      // 宣传片用原片、不转码
       teaser: {
-        src: ASSETS + "assets/multilive/teaser.mp4",
+        src: ML + "teaser.mp4",
         poster: ML + "teaser.jpg",
         autoplay: false,
         loop: false,
@@ -1054,77 +1050,77 @@ window.SITE_DATA = {
             {
               id: "012_hotel_lobby",
               model: MS3 + "viewers/scenes/012_hotel_lobby/scene.glb",
-              environment: MS + "3d/viewers/scenes/012_hotel_lobby/environment.webp",
+              environment: MS3 + "viewers/scenes/012_hotel_lobby/environment.webp",
               poster: MS + "scenes/012_hotel_lobby.webp",
               workflow: "pages/ccm-workflow/?case=012_hotel_lobby",
             },
             {
               id: "Gemini_Generated_Image_sjbz27sjbz27sjbz",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz/scene.glb",
-              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz/environment.webp",
+              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz/environment.webp",
               poster: MS + "scenes/Gemini_Generated_Image_sjbz27sjbz27sjbz.webp",
               workflow: "pages/ccm-workflow/?case=Gemini_Generated_Image_sjbz27sjbz27sjbz",
             },
             {
               id: "003_home_office",
               model: MS3 + "viewers/scenes/003_home_office/scene.glb",
-              environment: MS + "3d/viewers/scenes/003_home_office/environment.webp",
+              environment: MS3 + "viewers/scenes/003_home_office/environment.webp",
               poster: MS + "scenes/003_home_office.webp",
               workflow: "pages/ccm-workflow/?case=003_home_office",
             },
             {
               id: "Gemini_Generated_Image_dfwzixdfwzixdfwz",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz/scene.glb",
-              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz/environment.webp",
+              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz/environment.webp",
               poster: MS + "scenes/Gemini_Generated_Image_dfwzixdfwzixdfwz.webp",
               workflow: "pages/ccm-workflow/?case=Gemini_Generated_Image_dfwzixdfwzixdfwz",
             },
             {
               id: "Gemini_Generated_Image_8rhdjt8rhdjt8rhd",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd/scene.glb",
-              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd/environment.webp",
+              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd/environment.webp",
               poster: MS + "scenes/Gemini_Generated_Image_8rhdjt8rhdjt8rhd.webp",
             },
             {
               id: "Gemini_Generated_Image_dh6x0wdh6x0wdh6x",
               model: MS3 + "viewers/scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/scene.glb",
-              environment: MS + "3d/viewers/scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/environment.webp",
+              environment: MS3 + "viewers/scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x/environment.webp",
               poster: MS + "scenes/Gemini_Generated_Image_dh6x0wdh6x0wdh6x.webp",
             },
             {
               id: "scene05",
               model: MS3 + "viewers/scenes/scene05/scene.glb",
-              environment: MS + "3d/viewers/scenes/scene05/environment.webp",
+              environment: MS3 + "viewers/scenes/scene05/environment.webp",
               poster: MS + "scenes/scene05.webp",
             },
             {
               id: "idea_table",
               model: MS3 + "viewers/scenes/idea_table/scene.glb",
-              environment: MS + "3d/viewers/scenes/idea_table/environment.webp",
+              environment: MS3 + "viewers/scenes/idea_table/environment.webp",
               poster: MS + "scenes/idea_table.webp",
             },
             {
               id: "designer-bedroom",
               model: MS3 + "viewers/scenes/designer-bedroom/scene.glb",
-              environment: MS + "3d/viewers/scenes/designer-bedroom/environment.webp",
+              environment: MS3 + "viewers/scenes/designer-bedroom/environment.webp",
               poster: MS + "scenes/designer-bedroom.webp",
             },
             {
               id: "green-room_local_furniture_hq_v1",
               model: MS3 + "viewers/scenes/green-room_local_furniture_hq_v1/scene.glb",
-              environment: MS + "3d/viewers/scenes/green-room_local_furniture_hq_v1/environment.webp",
+              environment: MS3 + "viewers/scenes/green-room_local_furniture_hq_v1/environment.webp",
               poster: MS + "scenes/green-room_local_furniture_hq_v1.webp",
             },
             {
               id: "italian-style-still-life",
               model: MS3 + "viewers/scenes/italian-style-still-life/scene.glb",
-              environment: MS + "3d/viewers/scenes/italian-style-still-life/environment.webp",
+              environment: MS3 + "viewers/scenes/italian-style-still-life/environment.webp",
               poster: MS + "scenes/italian-style-still-life.webp",
             },
             {
               id: "the-white-room-cycles_countrylike_v12_bookshelf_full",
               model: MS3 + "viewers/scenes/the-white-room-cycles_countrylike_v12_bookshelf_full/scene.glb",
-              environment: MS + "3d/viewers/scenes/the-white-room-cycles_countrylike_v12_bookshelf_full/environment.webp",
+              environment: MS3 + "viewers/scenes/the-white-room-cycles_countrylike_v12_bookshelf_full/environment.webp",
               poster: MS + "scenes/the-white-room-cycles_countrylike_v12_bookshelf_full.webp",
             },
           ],

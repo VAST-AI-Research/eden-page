@@ -92,7 +92,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
     en: "One line on what it does and why it is better.",
   },
   // 列表卡片缩略图，必须 16:10。现有两篇论文用的是生成的示意图（统一风格、
-  // 放在 assets/thumbs/，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
+  // 放在素材桶里，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
   thumb: TH + "my-project.jpg",
 
   // 会议信息：标题下方一行居中排版。没中会议就把这几行删掉，整块自动消失。
@@ -133,7 +133,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 }
 ```
 
-数组顺序 = 列表页顺序，想置顶就往前挪。素材放 `assets/my-paper/` 下。
+数组顺序 = 列表页顺序，想置顶就往前挪。素材传到桶里的 `assets/my-paper/` 下（见「大素材放哪」）。
 
 `authors[]` 还认 `bold: true`，把那个名字加粗（共一 / 项目负责人 / 通讯用）。
 只加粗名字，不含 `*` `†` `✉` 这些标注符号。
@@ -253,7 +253,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
   columns: 3,
   items: [ { id: "case01",                       // 用于记住该场景的环境旋转角度
              model: MS3 + "viewers/scenes/case01/scene.glb",
-             environment: MS + "3d/viewers/scenes/case01/environment.webp",
+             environment: MS3 + "viewers/scenes/case01/environment.webp",
              poster: MS + "scenes/case01.webp",
              workflow: "pages/ccm-workflow/?case=case01" } ] }   // 可选，给了才显示链接
 
@@ -330,29 +330,42 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 
 ### 大素材放哪
 
-页面上用到的素材都放 `assets/<项目名>/`，跟站点一起部署 —— **但要先压**：视频转成动态
-AVIF，图片转 WebP。宣传片除外：用原片、不转码（要能拖进度条，有的带声音）。单个文件别超过
-25MiB（Cloudflare Workers 静态资源的上限），整站留在 GitHub Pages 的 1GB 以内。
-动图放进轮播或插图时那一节要写 `ratio`（画面宽高比）。命令和画质底线见 CLAUDE.md 的「素材」一节。
+不进 git。页面上用到的视频、图片、三维模型和 PDF 都放在 Cloudflare R2 的 `eden-page-assets` 桶里，
+经 `https://assets.vast-eden.ai/` 走 Cloudflare CDN 访问。仓库的 `assets/` 只留站点自己的
+logo、图标、字体和占位图。（站点部署在 Cloudflare Workers 上，单个静态文件最大 25MiB，
+宣传片和三维模型都远超这个数。）
 
-原件留在 HF dataset（`huanngzh/page-assets`、`ToRealU/eden-page-assets`）里，路径一一对应。
-要重转就从那边取，别拿压过的再压一遍。
+**传之前先压**：视频转成动态 AVIF，图片转 WebP。宣传片除外：用原片、不转码（要能拖进度条，
+有的带声音）。动图放进轮播或插图时那一节要写 `ratio`（画面宽高比）。命令和画质底线见
+CLAUDE.md 的「素材」一节。原件留在 HF dataset（`huanngzh/page-assets`、`ToRealU/eden-page-assets`）
+里，路径一一对应；要重转就从那边取，别拿压过的再压一遍。
 
-三维模型、CCM workflow 的素材和 MultiLive 的论文 PDF 是例外：加起来约 730MB，进不了仓库，
-放在外部存储。超过单文件上限的宣传片原片（EdenLive 117MB、MultiLive 38MB）也放在那里。
-各目录的前缀都是 `data/projects.js` 顶部的常量，条目里只写后半截路径：
+桶里的 key 沿用原来的路径（`assets/<项目名>/...`）。各目录的前缀都是 `data/projects.js`
+顶部的常量，条目里只写后半截路径：
 
 ```js
-const ASSETS = 'https://…/';                 // 外部存储：三维模型、CCM、PDF、超限的宣传片
-const MS3 = ASSETS + 'assets/mira-scene/3d/';
-const SW = 'assets/stereo-world/';           // 其余都在仓库里
-const MS = 'assets/mira-scene/';
-const TH = 'assets/thumbs/';
+const ASSETS = 'https://assets.vast-eden.ai/';   // 换域名只改这一行
+const SW = ASSETS + 'assets/stereo-world/';
+const MS = ASSETS + 'assets/mira-scene/';
+const TH = ASSETS + 'assets/thumbs/';
 // 用的时候：src: SW + "videos/demo.mp4"
 ```
 
-`pages/ccm-workflow/data/manifest.json` 里写死了同一个 `ASSETS` 地址，换的话两处一起换。
-这个地址必须允许跨域 GET —— 三维查看器和 CCM 页都是 `fetch` 去拿的。
+`pages/ccm-workflow/data/manifest.json` 和 `index.html` 的 `og:image` 兜底值里也写了完整地址，
+换域名时和 `ASSETS` 一起改。
+
+上传用 wrangler（先 `npx wrangler login` 登录一次。登录的人能看到不止一个账号时，
+要用 `CLOUDFLARE_ACCOUNT_ID` 指定 Vast，ID 在 `npx wrangler whoami` 里）：
+
+```bash
+CLOUDFLARE_ACCOUNT_ID=<Vast 账号 ID> npx wrangler r2 object put \
+  eden-page-assets/assets/<项目名>/videos/x.avif --file x.avif --remote \
+  --content-type image/avif --cache-control "public, max-age=604800"
+```
+
+一次传一个文件，批量就写个循环。两个坑：`--content-type` 一定要给，不给就成了
+`application/octet-stream`；文件缓存 7 天，**同一个地址覆盖上传后，老读者最多 7 天内
+还会看到旧文件**，要立刻生效就换个文件名。
 
 ## 部署
 
