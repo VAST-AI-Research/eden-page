@@ -455,6 +455,53 @@
     img.after(c);   // 紧跟在图后面：轮播里后面还有暂停按钮，不能盖住它
   }
 
+  /* 把一个 .frame 标成动图格子。ratio 是数据里写的画面宽高比（如 "1664 / 480"），
+   * 图到之前骨架按它占位；不写就用 css 里的默认值（EdenLive 的 1280 / 704）。 */
+  function animFrame(frame, ratio) {
+    frame.classList.add('frame--anim');
+    if (ratio) frame.style.setProperty('--ratio', ratio);
+  }
+
+  /* 动图格子（frame--anim，轮播样例和插图共用）正中央的播放/暂停按钮的图标和读屏文案 */
+  function paintToggle(btn, playing) {
+    btn.dataset.state = playing ? 'playing' : 'paused';
+    btn.innerHTML = icon(playing ? 'pause' : 'play');
+    btn.setAttribute('aria-label', ui(playing ? 'samplePause' : 'samplePlay'));
+  }
+
+  /* 动图格子的交互：暂停 = 定格（freezeAnim），载入完成打 data-loaded 收掉骨架，
+   * 断了重试。轮播里「哪一页才填 src」归 initCarousel 管，这里不碰。 */
+  function initAnimFrames(root) {
+    $$('.frame--anim', root).forEach((frame) => {
+      const img = $('img', frame);
+      const btn = $('.csample__toggle', frame);
+      if (!img || !btn) return;
+      const src = img.dataset.src || img.getAttribute('src');
+      const frozen = () => !!$('canvas', frame);
+      btn.addEventListener('click', () => { freezeAnim(frame, !frozen()); paintToggle(btn, !frozen()); });
+      const loaded = () => {
+        frame.dataset.loaded = 'true';
+        // reduce-motion：到了就定格，要看的人自己点播放
+        if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) freezeAnim(frame, true);
+        paintToggle(btn, !frozen());
+      };
+      img.addEventListener('load', loaded);
+      if (img.complete && img.naturalWidth) loaded();
+      // 几 MB 的图在慢链路上容易断在半截：卸掉 src，过会儿再要一次（最多两次）。
+      // 轮播里已经翻走的页不重试，翻回来时 initCarousel 会重新填。
+      img.addEventListener('error', () => {
+        img.removeAttribute('src');
+        const n = Number(img.dataset.retries || 0);
+        if (n >= 2) return;
+        img.dataset.retries = String(n + 1);
+        setTimeout(() => {
+          if (img.getAttribute('src') || frame.closest('.carousel__page[aria-hidden="true"]')) return;
+          img.setAttribute('src', src);
+        }, 1500);
+      });
+    });
+  }
+
   /** 返回上一层的面包屑（详情页 → 所属栏目列表页） */
   function backLink(data, navKey, go) {
     const nav = (data.nav || []).find((n) => n.key === navKey);
@@ -664,6 +711,13 @@
       frame.append(renderMedia(s.src, {
         poster: s.poster, alt: t(s.alt) || t(s.title) || 'figure',
       }));
+      // 动图插图和轮播里的动图样例一样：骨架占位 + 暂停按钮（接线在 initAnimFrames）
+      if (isAnim(t(s.src))) {
+        animFrame(frame, s.ratio);
+        frame.append(el('button', {
+          class: 'csample__toggle', type: 'button', 'aria-label': ui('samplePause'),
+        }, icon('pause')));
+      }
       fig.append(frame);
       if (s.caption) fig.append(el('figcaption', { class: 'caption' }, rich(t(s.caption))));
       box.append(fig);
@@ -857,9 +911,9 @@
           const v = $('video', frame);
           if (v) { v.removeAttribute('controls'); v.controls = false; }
           // 动图样例（.avif / .gif）给同一个按钮：对它来说暂停 = 定格（freezeAnim）。
-          // frame--anim 另外挂上骨架：第一帧到之前格子在呼吸，见 css。
+          // frame--anim 另外挂上骨架：第一帧到之前格子在呼吸，按 s.ratio 占位，见 css。
           const anim = !v && isAnim(t(it.src));
-          if (anim) frame.classList.add('frame--anim');
+          if (anim) animFrame(frame, s.ratio);
           if (v || anim) {
             frame.append(el('button', {
               class: 'csample__toggle', type: 'button',
@@ -1194,40 +1248,14 @@
 
       // 样例视频的播放/暂停按钮：正中央那个，只有悬停时才看得见。
       // 状态全靠视频自己的 paused，按钮只负责切换和同步图标。
-      const paintToggle = (btn, playing) => {
-        btn.dataset.state = playing ? 'playing' : 'paused';
-        btn.innerHTML = icon(playing ? 'pause' : 'play');
-        btn.setAttribute('aria-label', ui(playing ? 'samplePause' : 'samplePlay'));
-      };
+      // 动图样例的按钮不在这里接，见 initAnimFrames。
       const syncToggle = (v) => {
         const btn = v.parentElement?.querySelector('.csample__toggle');
         if (btn) paintToggle(btn, !v.paused);
       };
       $$('.csample__toggle', car).forEach((btn) => {
-        const frame = btn.parentElement;
-        const v = frame.querySelector('video');
-        if (!v) {
-          /* 动图样例：没有 <video> 可控，暂停 = 定格（freezeAnim），状态就是有没有那张 canvas。
-           * 图要完整到了才定得了格，在那之前按钮由 css 藏着。 */
-          const img = $('img', frame);
-          const frozen = () => !!$('canvas', frame);
-          btn.addEventListener('click', () => { freezeAnim(frame, !frozen()); paintToggle(btn, !frozen()); });
-          img.addEventListener('load', () => {
-            frame.dataset.loaded = 'true';
-            // reduce-motion：到了就定格，要看的人自己点播放
-            if (window.matchMedia('(prefers-reduced-motion: reduce)').matches) freezeAnim(frame, true);
-            paintToggle(btn, !frozen());
-          });
-          // 几 MB 的图在慢链路上容易断在半截：卸掉 src，还停在这一页就过会儿再要一次（最多两次）
-          img.addEventListener('error', () => {
-            img.removeAttribute('src');
-            const n = Number(img.dataset.retries || 0);
-            if (n >= 2 || frame.closest('.carousel__page') !== pages[cur]) return;
-            img.dataset.retries = String(n + 1);
-            setTimeout(() => show(cur), 1500);
-          });
-          return;
-        }
+        const v = btn.parentElement.querySelector('video');
+        if (!v) return;
         btn.addEventListener('click', () => {
           if (!v.getAttribute('src')) return;   // 还没填 src（不在视野里）就别播
           if (v.paused) {
@@ -2197,6 +2225,7 @@
       renderDetail(data, route, hero, main, go);
     }
 
+    initAnimFrames(main);
     initCarousel(main);
     initCompare(main);
     initSceneViewers(main);

@@ -362,8 +362,10 @@ Small images (a few hundred KB — thumbnails, teaser posters) go straight into
 GitHub Pages caps files at 100MiB and the whole site at 1GB.
 
 Animated AVIFs converted from video are the exception: they usually end up a few MB
-each, so they can go straight into `assets/` and deploy with the site (EdenLive's 60
-live in `assets/edenlive/clips/`). Keep each one under 25MiB; see "轮播里的动图" in
+each, so they can go straight into `assets/` and deploy with the site (the 122 for
+EdenLive and the three papers live under `assets/`, at the same paths as on R2). Keep
+each one under 25MiB, and give the section a `ratio` (the image's aspect ratio) when
+it goes in a carousel or figure; see "轮播和插图里的动图" in
 CLAUDE.md for how to make them. Everything else large goes to Cloudflare R2:
 
 ```

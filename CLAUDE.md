@@ -22,6 +22,7 @@ project_page/
 │   │                     # （列表卡片缩略图不在这里：是生成的示意图，托管在
 │   │                     #   R2 的 assets/thumbs/，见「缩略图」一节）
 │   ├── edenlive/clips/*.avif # EdenLive 的 60 张动图（条带 + 四节应用），见「素材托管」
+│   ├── {multilive,mira-scene,stereo-world}/…/*.avif # 三篇论文的 62 张动图，路径和 R2 一一对应
 │   └── placeholder/*.svg # 占位素材，真素材进来后应逐步删除
 └── README.md             # 面向使用者的替换/部署说明
 ```
@@ -188,9 +189,9 @@ titleBreakAfter: { zh: "", en: "Mira-Scene: *Pixel-Aligned Layouts*" },
 | type | 必需字段 | 说明 |
 |---|---|---|
 | `text` | `body` | 纯文字段落 |
-| `figure` | `src` | 图/视频 + caption，`video` 是它的别名 |
+| `figure` | `src` | 图/视频/动图 + caption，`video` 是它的别名；动图要写 `ratio` |
 | `gallery` | `items[]` | 网格，点开进灯箱，`columns: 2\|3\|4\|"2-fixed"` |
-| `carousel` | `items[]` | 轮播，一页 `perPage` 个（默认 2），左右翻页 |
+| `carousel` | `items[]` | 轮播，一页 `perPage` 个（默认 2），左右翻页；放动图要写 `ratio` |
 | `compare` | `before`, `after` | 拖动滑块前后对比 |
 | `table` | `columns[]`, `rows[]` | `highlightRows: [3]` 高亮我们的方法（0-based） |
 | `features` | `items[]` | 卖点卡片，`icon` 见下 |
@@ -209,31 +210,47 @@ StereoWorld 的 5 个视频 section 全是 `carousel`。
 视频是懒加载的：只有当前页和相邻页会真的下载，翻出视野的会 `pause()`，
 不然几十个视频一起解码，风扇直接起飞。
 
-**轮播里的动图**：`items[].src` 也可以是动态图（`.avif` / `.gif`），EdenLive 的
-四节应用（Interactive Game Preview / Scene and Animation Preview / Video Re-Rendering
-and Restyling / Embodied Data Augmentation）共 33 张，都是整段转出来的 AVIF。
-和视频样例的区别：
+**轮播和插图里的动图**：轮播的 `items[].src`、`figure` 的 `src` 都可以是动态图
+（`.avif` / `.gif`）。除了宣传片，EdenLive 和三篇论文页面上的视频都已经转成了整段的
+AVIF：EdenLive 四节应用 33 张，MultiLive / Mira-Scene / StereoWorld 共 62 张
+（61 张轮播样例 + StereoWorld 的 motivation 插图）。和视频样例的区别：
 
 - 暂停按钮照样有，对动图来说暂停 = 定格（和顶部条带共用 `freezeAnim()`）。
-  图要完整下完才定得了格，所以下完之前按钮藏着。
+  图要完整下完才定得了格，所以下完之前按钮藏着。接线在 `initAnimFrames()`，
+  轮播和插图共用；轮播自己只管「哪一页才填 `src`」。
 - **只有当前页会下载，相邻页不预热。** 视频的预热只取元数据，图一填 `src` 就是
   下整个文件（一张几 MB），会和当前页抢带宽。翻走时没下完的图会被撤掉 `src`，
-  翻回来重新要。
-- 下完之前格子是骨架（frame 自己按 1280/704 占位，图到了交给图自己的比例）。
-  几 MB 的动图是边下边播的，第一帧一到就把骨架盖住。
+  翻回来重新要。断了会重试两次，已经翻走的页不重试。
+- **下完之前格子是骨架，按那一节的 `ratio` 占位**（写在 section 上，如
+  `ratio: "1664 / 480"`），图到了交给图自己的比例。**动图一律要写 `ratio`**：不写就按
+  EdenLive 素材的 1280/704，比例不对图到时会跳 —— Mira-Scene 那张 1280×530 的
+  `pipeline.gif` 没写时，载入那一下页面缩了 122px。几 MB 的动图是边下边播的，
+  第一帧一到就把骨架盖住。
 - `prefers-reduced-motion` 下载过程中图是藏着的，下完直接定格。
-- 判断靠扩展名（`isAnim()`），所以**静态图别用 `.avif` / `.gif` 放进轮播**，
+- 判断靠扩展名（`isAnim()`），所以**静态图别用 `.avif` / `.gif` 放进轮播或插图**，
   不然会多出一个没用的暂停按钮。
 
-转换命令（源是 R2 上同名 `.mp4`，产物放进仓库的 `assets/edenlive/clips/`）：
+**宣传片（teaser）保留为视频**：要能拖进度条，而且 StereoWorld 和 Mira-Scene 的
+带声音，动图没有音轨。转之前先看音轨是不是真有声音（`volumedetect` 的 mean 在 −90dB
+左右就是导出时附带的静音轨，StereoWorld 的 motivation 就是这样才转的）。
+
+转换命令（源是 R2 上同名 `.mp4`，产物放进仓库，路径和 R2 一一对应，
+如 `assets/edenlive/clips/`、`assets/stereo-world/stereo_video/`）：
 
 ```bash
 # 整段、原分辨率、原帧率。CRF 38 不封码率：封顶会让画面复杂的片段整块糊成色块，
-# 实测封在 1.5Mbps 时最差那一帧 VMAF 只有 30。现在 33 张 VMAF 平均 91.8~99.7，
-# 共 148MB（原视频 559MB）。
-ffmpeg -i <短码>.mp4 -vf format=yuv420p -c:v libsvtav1 -crf 38 -preset 5 -g 240 \
-  -an -loop 0 -f avif <短码>.avif
+# 实测封在 1.5Mbps 时最差那一帧 VMAF 只有 30。
+ffmpeg -i <名字>.mp4 -vf format=yuv420p -c:v libsvtav1 -crf 38 -preset 5 -g 240 \
+  -an -loop 0 -f avif <名字>.avif
 ```
+
+**画质底线：平均 VMAF ≥ 92、「最差 1%」≥ 85**，达不到的降 CRF 重转（先 30，太大就
+取中间的 34）。CRF 38 对大多数素材够用，但 StereoWorld 那种左右眼并排、地面纹理细的
+会被抹平一层（`varied_scene_074` 最差 1% 只有 81）。三篇论文里有 10 段走了重转：
+9 段 CRF 30，`ar_demo/custom_varied_021` CRF 34（CRF 30 转出来和原视频一样大）。
+现在这 62 张平均 VMAF 92.0~99.6，最差 1% 都在 85 以上。EdenLive 那 33 张是定这条线
+之前转的，只有 `bb6c2841`（91.8 / 84.1）略低，看过最差帧可以接受，没有重转。
+（条带的 27 张小图是装饰、另有一套参数，不适用这条线。）
 
 验 VMAF 时别被片尾的最低分吓到：有的原片最后一两帧时长不规整（停留 2~4 个帧长），
 AVIF 按恒定帧率会补出重复帧，逐帧比对时片尾就错开了，最低分能掉到 20 多。
@@ -451,13 +468,18 @@ for s in (34,26,16):
 （`assets/<项目>/...`），所以那两个 dataset（`huanngzh/page-assets`、
 `ToRealU/eden-page-assets`）现在只是原件备份，页面不再引用。
 
-**例外：EdenLive 的 60 张 AVIF 动图在仓库里**（`assets/edenlive/clips/`，共 153MB，
-最大一张 12MB），由 `data/projects.js` 的 `EL` 常量指向，跟站点一起部署、同源加载，
-不受 r2.dev 限流。视频转成动图之后才小到能进 git；原视频、宣传片、三维模型仍在 R2。
-往仓库里放动图守住几条线：单张别超过 25MiB（Cloudflare Workers 静态资源的上限）、
-GitHub 单文件 50MiB 起报警，整站要留在 GitHub Pages 的 1GB 以内。
-**重新生成会让历史变胖**：每覆盖一次，旧的那 153MB 都永久留在 git 历史里，
-所以调参数先在本地挑好，定稿了再提交。
+**例外：视频转成的 AVIF 动图在仓库里**，共 122 张约 228MB，最大一张 12MB，
+路径和 R2 上的 key 一一对应：
+
+- EdenLive 60 张（153MB）在 `assets/edenlive/clips/`，由 `data/projects.js` 的 `EL` 指向；
+- 三篇论文 62 张（75MB）在 `assets/{multilive,mira-scene,stereo-world}/` 下，由
+  `MLA` / `MSA` / `SWA` 指向（`ML` / `MS` / `SW` 仍指向 R2，图片和宣传片用它们）。
+
+它们跟站点一起部署、同源加载，不受 r2.dev 限流。视频转成动图之后才小到能进 git；
+原视频、宣传片、三维模型仍在 R2。往仓库里放动图守住几条线：单张别超过 25MiB
+（Cloudflare Workers 静态资源的上限）、GitHub 单文件 50MiB 起报警，整站要留在
+GitHub Pages 的 1GB 以内。**重新生成会让历史变胖**：每覆盖一次，旧文件都永久留在
+git 历史里，所以调参数先在本地挑好，定稿了再提交。
 
 **为什么从 HF 搬走**（2026-10）：每个 `resolve/main` 请求都要先 302 到美国的 CDN，
 跳转地址带签名、每次都不一样，浏览器缓存不住，回访也要全量重下；大陆还直连不上。

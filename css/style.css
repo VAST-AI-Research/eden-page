@@ -786,14 +786,15 @@ table { border-collapse: collapse; }
 /* 播放图标视觉重心偏右，往左挪一点才看起来在正中 */
 .csample__toggle[data-state="paused"] svg { margin-left: 2px; }
 
-/* 动图样例（轮播里 .avif / .gif 的格子，app.js 给它的 frame 挂了 frame--anim）：
+/* 动图格子（轮播样例和插图里的 .avif / .gif，app.js 的 animFrame() 挂了 frame--anim）：
    - 图到之前没有高度，格子会塌成一条线，图到了再把下面的内容顶开。所以载入完成前
-     由 frame 自己按 1280/704 占位（比例写在 img 上没用：还没有 src 的 img 不算图片）。
-     图更高时 frame 会被撑开；载入完成后放开，交给图自己的比例。
+     由 frame 自己按 --ratio 占位（比例写在 img 上没用：还没有 src 的 img 不算图片）。
+     --ratio 来自数据里那一节的 ratio 字段，没写就是 EdenLive 素材的 1280/704。
+     比例写错的话图到时会跳一下；载入完成后放开，交给图自己的比例。
    - 骨架和顶部条带是同一套呼吸，垫在图底下。几 MB 的动图是边下边播的，
      第一帧一到就把骨架盖住，所以不像条带的小图那样等 load 才淡入。
    - 暂停 = freezeAnim() 画的 canvas 盖在图上。图没下完定不了格，按钮先藏着。 */
-.frame--anim:not([data-loaded]) { aspect-ratio: 1280 / 704; }
+.frame--anim:not([data-loaded]) { aspect-ratio: var(--ratio, 1280 / 704); }
 .frame--anim > img { position: relative; }
 /* 还没填 src 的 img 会把 alt 文字画出来，盖在骨架上 */
 .frame--anim > img:not([src]) { visibility: hidden; }

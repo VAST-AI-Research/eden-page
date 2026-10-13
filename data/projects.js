@@ -17,7 +17,8 @@
 
 /* 页面素材（视频、图片、三维模型）都放在 Cloudflare R2 的 eden-page-assets 桶里
  * （Vast 账号，APAC），不进本仓库。桶里的 key 和原先 HF dataset 里的路径一一对应，
- * 都以 assets/ 开头。唯一的例外是 EdenLive 的 60 张动图，在仓库里（见下面 EL 的注释）。
+ * 都以 assets/ 开头。例外是视频转成的动图，放在仓库里：EdenLive 的 60 张（见下面 EL
+ * 的注释）和三篇论文的 62 张（见 SWA / MSA / MLA 的注释）。
  *
  * 2026-10 从 HuggingFace（huanngzh/page-assets、ToRealU/eden-page-assets）搬过来：
  * HF 每个请求都要先 302 到美国的 CDN，跳转地址每次都不一样（浏览器缓存不住），
@@ -64,6 +65,15 @@ const TH = ASSETS + 'assets/thumbs/';
 
 /* MultiLive 的 19 个页面素材（13 段视频、5 张图片、1 份 PDF，约 80 MiB）。 */
 const ML = ASSETS + 'assets/multilive/';
+
+/* 三篇论文页面上的视频，除了宣传片 teaser，都转成了同名的 .avif 动图放在仓库里，
+ * 路径和 R2 上一一对应（assets/<项目>/...），跟站点一起部署。下面三个前缀指向仓库，
+ * 上面的 SW / MS / ML 仍指向 R2（图片、宣传片、三维模型都还在那边）。
+ * 宣传片保留为视频：StereoWorld 和 Mira-Scene 的带声音，动图没有音轨。
+ * 转换命令和 ratio 字段的用法见 CLAUDE.md 的「轮播和插图里的动图」。 */
+const SWA = 'assets/stereo-world/';
+const MSA = 'assets/mira-scene/';
+const MLA = 'assets/multilive/';
 
 /* EdenLive 的视频（背景条带、宣传片、四节应用的样例，共 61 个，约 985MB）在 R2 的
  * assets/edenlive/clips/ 下。文件名是随机短码，不带分辨率和模型名。短码与本地
@@ -562,7 +572,7 @@ window.SITE_DATA = {
           perPage: 1,
           layout: "centered",
           // 动图样例：同名 clip 整段（30 秒、1280×704、24fps）转的循环 AVIF，
-          // 9 张共 60MB，原视频是 185MB。转换命令见 CLAUDE.md 的「轮播里的动图」。
+          // 9 张共 60MB，原视频是 185MB。转换命令见 CLAUDE.md 的「轮播和插图里的动图」。
           // 动图没有控制条，所以不写 controls（写了也不起作用）。
           items: [
             { src: EL + "bafe32b9.avif" },
@@ -838,22 +848,24 @@ window.SITE_DATA = {
         {
           type: "carousel",
           id: "mv-results",
+          ratio: "832 / 480",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "更多结果", en: "More Results" },
           perPage: 1,
           items: [
-            { src: ML + "results/lunar-astronaut.mp4" },
-            { src: ML + "results/eiffel-night.mp4" },
-            { src: ML + "results/mountain-road.mp4" },
-            { src: ML + "results/sunset-seaside.mp4" },
-            { src: ML + "results/flower-meadow.mp4" },
-            { src: ML + "results/blue-ufo.mp4" },
-            { src: ML + "results/red-macaw.mp4" },
-            { src: ML + "results/beach-run.mp4" },
+            { src: MLA + "results/lunar-astronaut.avif" },
+            { src: MLA + "results/eiffel-night.avif" },
+            { src: MLA + "results/mountain-road.avif" },
+            { src: MLA + "results/sunset-seaside.avif" },
+            { src: MLA + "results/flower-meadow.avif" },
+            { src: MLA + "results/blue-ufo.avif" },
+            { src: MLA + "results/red-macaw.avif" },
+            { src: MLA + "results/beach-run.avif" },
           ],
         },
         {
           type: "carousel",
           id: "demos",
+          ratio: "1696 / 528",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "世界模型演示", en: "World Model Demos" },
           body: {
             zh: "<p>每段视频展示一个世界模型场景及其同步视角，底部动作提示展示交互控制。点击视频控制条可以暂停、拖动或全屏查看。</p>",
@@ -861,10 +873,10 @@ window.SITE_DATA = {
           },
           perPage: 1,
           items: [
-            { src: ML + "wm-horse.mp4?v=dial4", caption: { zh: "骑马穿过山谷", en: "Horse ride through a valley" } },
-            { src: ML + "wm-desert.mp4?v=dial4", caption: { zh: "荒原星球", en: "Desert planet" } },
-            { src: ML + "wm-forest.mp4?v=dial4", caption: { zh: "森林秋千", en: "Forest swing" } },
-            { src: ML + "wm-ocean.mp4?v=dial4", caption: { zh: "海上游泳", en: "Swimming in the ocean" } },
+            { src: MLA + "wm-horse.avif", caption: { zh: "骑马穿过山谷", en: "Horse ride through a valley" } },
+            { src: MLA + "wm-desert.avif", caption: { zh: "荒原星球", en: "Desert planet" } },
+            { src: MLA + "wm-forest.avif", caption: { zh: "森林秋千", en: "Forest swing" } },
+            { src: MLA + "wm-ocean.avif", caption: { zh: "海上游泳", en: "Swimming in the ocean" } },
           ],
         },
       ],
@@ -1023,6 +1035,7 @@ window.SITE_DATA = {
         {
           type: "figure",
           id: "pipeline",
+          ratio: "1280 / 530",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "方法", en: "Mira-Scene Pipeline" },
           src: MS + "images/pipeline.gif",
           alt: { zh: "Mira-Scene 方法流程", en: "Mira-Scene pipeline" },
@@ -1208,6 +1221,7 @@ window.SITE_DATA = {
         {
           type: "carousel",
           id: "simulation-blender",
+          ratio: "1920 / 1080",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "导入 Blender 做物理仿真", en: "Blender Simulation" },
           body: {
             zh: "<p>Mira-Scene 重建出的场景可以导入仿真引擎，用于下游的交互任务。</p>",
@@ -1216,19 +1230,19 @@ window.SITE_DATA = {
           },
           perPage: 1,
           items: [
-            { src: MS + "simulation/blender/sim1.mp4",
+            { src: MSA + "simulation/blender/sim1.avif",
               caption: { zh: "<strong>重力。</strong>重力作用于重建出的场景及其中的物体。",
                          en: "<strong>Gravity.</strong> Gravity influences the reconstructed " +
                              "scene and its objects." } },
-            { src: MS + "simulation/blender/sim2.mp4",
+            { src: MSA + "simulation/blender/sim2.avif",
               caption: { zh: "<strong>场景编辑。</strong>可以把物体重新组织成新的布局。",
                          en: "<strong>Scene Editing.</strong> Objects can be reorganized into a " +
                              "new layout." } },
-            { src: MS + "simulation/blender/sim3.mp4",
+            { src: MSA + "simulation/blender/sim3.avif",
               caption: { zh: "<strong>抓取与放置。</strong>在重建场景里对物体做 pick-and-place。",
                          en: "<strong>Pick and Place.</strong> A pick-and-place task manipulates " +
                              "objects in the reconstructed scene." } },
-            { src: MS + "simulation/blender/sim4.mp4",
+            { src: MSA + "simulation/blender/sim4.avif",
               caption: { zh: "<strong>碰撞。</strong>物体与场景之间的碰撞交互。",
                          en: "<strong>Collision.</strong> Collision interactions are simulated " +
                              "between objects and the scene." } },
@@ -1237,6 +1251,7 @@ window.SITE_DATA = {
         {
           type: "carousel",
           id: "simulation-isaac",
+          ratio: "1920 / 1080",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "Isaac 中的机器人交互", en: "Isaac Simulation" },
           body: {
             zh: "<p>所有动作策略均由 GPT-6 Astra 生成。</p>",
@@ -1244,15 +1259,15 @@ window.SITE_DATA = {
           },
           perPage: 1,
           items: [
-            { src: MS + "simulation/isaac/interaction1.mp4",
+            { src: MSA + "simulation/isaac/interaction1.avif",
               caption: { zh: "<strong>扶正椅子。</strong>机器人把歪倒的椅子扶正，并与桌子对齐。",
                          en: "<strong>Chair Alignment.</strong> The robot straightens a tilted " +
                              "chair and aligns it parallel to the table." } },
-            { src: MS + "simulation/isaac/interaction2.mp4",
+            { src: MSA + "simulation/isaac/interaction2.avif",
               caption: { zh: "<strong>拉出椅子。</strong>机器人把餐椅从桌下拉出，方便落座。",
                          en: "<strong>Chair Pull-Out.</strong> The robot pulls a dining chair away " +
                              "from the table to make it accessible for sitting." } },
-            { src: MS + "simulation/isaac/interaction3.mp4",
+            { src: MSA + "simulation/isaac/interaction3.avif",
               caption: { zh: "<strong>堆叠边桌。</strong>机器人整理闲置家具，" +
                              "把边桌叠放到软凳上。",
                          en: "<strong>Side-Table Stacking.</strong> The robot organizes unused " +
@@ -1346,6 +1361,7 @@ window.SITE_DATA = {
         {
           type: "figure",
           id: "motivation",
+          ratio: "1920 / 1080",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "动机", en: "Motivation" },
           body: {
             zh: "<ul>" +
@@ -1361,7 +1377,7 @@ window.SITE_DATA = {
                 "metric depth maps while retaining strong geometric signals.</li>" +
                 "</ul>",
           },
-          src: SW + "videos/motivation.mp4",
+          src: SWA + "videos/motivation.avif",
         },
         {
           type: "figure",
@@ -1383,29 +1399,31 @@ window.SITE_DATA = {
         {
           type: "carousel",
           id: "stereo-video",
+          ratio: "1664 / 480",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "固定基线立体", en: "Fixed-Baseline Stereo" },
           perPage: 2,
           items: [
-            { src: SW + "stereo_video/varied_scene_004_lakeside_balcony_w_j_l_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_006_volcano_crater_dj_wk_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_011_underground_river_arch_w_wl_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_012_floating_islands_dj_wk_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_021_snowy_mountain_road_w_wk_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_022_minimal_gallery_w_j_l_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_028_rice_terraces_dj_wk_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_034_tea_house_window_w_j_l_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_037_northern_lights_cabin_w_wl_wj_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_044_music_studio_w_j_l_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_059_hospital_operating_room_w_j_l_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_067_old_europe_square_w_wl_wj_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_071_glacier_lagoon_w_wl_wj_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_073_children_playroom_w_j_l_demo.mp4" },
-            { src: SW + "stereo_video/varied_scene_074_coastal_tunnel_road_w_wk_demo.mp4" },
+            { src: SWA + "stereo_video/varied_scene_004_lakeside_balcony_w_j_l_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_006_volcano_crater_dj_wk_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_011_underground_river_arch_w_wl_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_012_floating_islands_dj_wk_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_021_snowy_mountain_road_w_wk_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_022_minimal_gallery_w_j_l_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_028_rice_terraces_dj_wk_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_034_tea_house_window_w_j_l_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_037_northern_lights_cabin_w_wl_wj_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_044_music_studio_w_j_l_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_059_hospital_operating_room_w_j_l_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_067_old_europe_square_w_wl_wj_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_071_glacier_lagoon_w_wl_wj_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_073_children_playroom_w_j_l_demo.avif" },
+            { src: SWA + "stereo_video/varied_scene_074_coastal_tunnel_road_w_wk_demo.avif" },
           ],
         },
         {
           type: "carousel",
           id: "stereo-depth",
+          ratio: "1920 / 480",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "立体深度", en: "Stereo Depth" },
           body: {
             zh: "<span style='white-space:nowrap'>每段视频左侧是<strong>立体视频</strong>，" +
@@ -1416,13 +1434,14 @@ window.SITE_DATA = {
           },
           perPage: 2,
           items: [
-            { src: SW + "stereo_depth/stereo_video1_with_disp_vis1.mp4" },
-            { src: SW + "stereo_depth/stereo_video2_with_disp_vis2.mp4" },
+            { src: SWA + "stereo_depth/stereo_video1_with_disp_vis1.avif" },
+            { src: SWA + "stereo_depth/stereo_video2_with_disp_vis2.avif" },
           ],
         },
         {
           type: "carousel",
           id: "flex-demo",
+          ratio: "1664 / 480",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "灵活立体", en: "Flexible Stereo" },
           body: {
             zh: "灵活立体模式支持左右相机独立控制，右相机有四种模式：" +
@@ -1432,43 +1451,44 @@ window.SITE_DATA = {
           },
           perPage: 2,
           items: [
-            { src: SW + "flex_demo/flex_converging_prompt_00117_demo.mp4",
+            { src: SWA + "flex_demo/flex_converging_prompt_00117_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SW + "flex_demo/flex_converging_prompt_01290_demo.mp4",
+            { src: SWA + "flex_demo/flex_converging_prompt_01290_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SW + "flex_demo/flex_converging_prompt_05539_demo.mp4",
+            { src: SWA + "flex_demo/flex_converging_prompt_05539_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SW + "flex_demo/flex_converging_prompt_09641_demo.mp4",
+            { src: SWA + "flex_demo/flex_converging_prompt_09641_demo.avif",
               caption: { zh: "汇聚", en: "Converging" } },
-            { src: SW + "flex_demo/flex_depth_offset_prompt_03814_demo.mp4",
+            { src: SWA + "flex_demo/flex_depth_offset_prompt_03814_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SW + "flex_demo/flex_depth_offset_prompt_05313_demo.mp4",
+            { src: SWA + "flex_demo/flex_depth_offset_prompt_05313_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SW + "flex_demo/flex_depth_offset_prompt_02664_demo.mp4",
+            { src: SWA + "flex_demo/flex_depth_offset_prompt_02664_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SW + "flex_demo/flex_depth_offset_prompt_07517_demo.mp4",
+            { src: SWA + "flex_demo/flex_depth_offset_prompt_07517_demo.avif",
               caption: { zh: "深度偏移", en: "Depth Offset" } },
-            { src: SW + "flex_demo/flex_height_offset_prompt_02504_demo.mp4",
+            { src: SWA + "flex_demo/flex_height_offset_prompt_02504_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SW + "flex_demo/flex_height_offset_prompt_02927_demo.mp4",
+            { src: SWA + "flex_demo/flex_height_offset_prompt_02927_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SW + "flex_demo/flex_height_offset_prompt_04808_demo.mp4",
+            { src: SWA + "flex_demo/flex_height_offset_prompt_04808_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SW + "flex_demo/flex_height_offset_prompt_08317_demo.mp4",
+            { src: SWA + "flex_demo/flex_height_offset_prompt_08317_demo.avif",
               caption: { zh: "高度偏移", en: "Height Offset" } },
-            { src: SW + "flex_demo/flex_horizontal_offset_prompt_03257_demo.mp4",
+            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_03257_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
-            { src: SW + "flex_demo/flex_horizontal_offset_prompt_04506_demo.mp4",
+            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_04506_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
-            { src: SW + "flex_demo/flex_horizontal_offset_prompt_06924_demo.mp4",
+            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_06924_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
-            { src: SW + "flex_demo/flex_horizontal_offset_prompt_08785_demo.mp4",
+            { src: SWA + "flex_demo/flex_horizontal_offset_prompt_08785_demo.avif",
               caption: { zh: "水平偏移", en: "Horizontal Offset" } },
           ],
         },
         {
           type: "carousel",
           id: "ar-distillation",
+          ratio: "1664 / 480",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "自回归长视频蒸馏", en: "Autoregressive Long Video Distillation" },
           body: {
             zh: "通过 self-forcing 蒸馏训练出的 4 步自回归学生模型，" +
@@ -1489,14 +1509,15 @@ window.SITE_DATA = {
           },
           perPage: 2,
           items: [
-            { src: SW + "ar_demo/custom_varied_021.mp4" },
-            { src: SW + "ar_demo/custom_varied_022.mp4" },
-            { src: SW + "ar_demo/custom_varied_059.mp4" },
+            { src: SWA + "ar_demo/custom_varied_021.avif" },
+            { src: SWA + "ar_demo/custom_varied_022.avif" },
+            { src: SWA + "ar_demo/custom_varied_059.avif" },
           ],
         },
         {
           type: "carousel",
           id: "inpaint-demo",
+          ratio: "2496 / 480",   // 动图的宽高比，图到之前骨架按它占位
           title: { zh: "视角补全", en: "View Inpainting" },
           body: {
             zh: "给定一段固定的参考视频，生成对应的另一个视角。<br>" +
@@ -1507,12 +1528,12 @@ window.SITE_DATA = {
           // 2-fixed：这些片段本身已经是三路并排拼接，塌成一列会看不清
           perPage: 2,
           items: [
-            { src: SW + "inpaint_demo/shard_01_teacher_cfg5.0_steps50_0000_seed1_concat.mp4" },
-            { src: SW + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0000_seed1_concat.mp4" },
-            { src: SW + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0009_seed1_concat.mp4" },
-            { src: SW + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0012_seed1_concat.mp4" },
-            { src: SW + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0002_seed1_concat.mp4" },
-            { src: SW + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0003_seed1_concat.mp4" },
+            { src: SWA + "inpaint_demo/shard_01_teacher_cfg5.0_steps50_0000_seed1_concat.avif" },
+            { src: SWA + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0000_seed1_concat.avif" },
+            { src: SWA + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0009_seed1_concat.avif" },
+            { src: SWA + "inpaint_demo/shard_02_teacher_cfg5.0_steps50_0012_seed1_concat.avif" },
+            { src: SWA + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0002_seed1_concat.avif" },
+            { src: SWA + "inpaint_demo/shard_04_teacher_cfg5.0_steps50_0003_seed1_concat.avif" },
           ],
         },
       ],
