@@ -331,7 +331,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 ### 大素材放哪
 
 页面上用到的素材都放 `assets/<项目名>/`，跟站点一起部署 —— **但要先压**：视频转成动态
-AVIF（宣传片除外，要能拖进度条、有的带声音，仍用 H.264），图片转 WebP。单个文件别超过
+AVIF，图片转 WebP。宣传片除外：用原片、不转码（要能拖进度条，有的带声音）。单个文件别超过
 25MiB（Cloudflare Workers 静态资源的上限），整站留在 GitHub Pages 的 1GB 以内。
 动图放进轮播或插图时那一节要写 `ratio`（画面宽高比）。命令和画质底线见 CLAUDE.md 的「素材」一节。
 
@@ -339,10 +339,11 @@ AVIF（宣传片除外，要能拖进度条、有的带声音，仍用 H.264）�
 要重转就从那边取，别拿压过的再压一遍。
 
 三维模型、CCM workflow 的素材和 MultiLive 的论文 PDF 是例外：加起来约 730MB，进不了仓库，
-放在外部存储。各目录的前缀都是 `data/projects.js` 顶部的常量，条目里只写后半截路径：
+放在外部存储。超过单文件上限的宣传片原片（EdenLive 117MB、MultiLive 38MB）也放在那里。
+各目录的前缀都是 `data/projects.js` 顶部的常量，条目里只写后半截路径：
 
 ```js
-const ASSETS = 'https://…/';                 // 外部存储，只放三维模型、CCM、PDF
+const ASSETS = 'https://…/';                 // 外部存储：三维模型、CCM、PDF、超限的宣传片
 const MS3 = ASSETS + 'assets/mira-scene/3d/';
 const SW = 'assets/stereo-world/';           // 其余都在仓库里
 const MS = 'assets/mira-scene/';

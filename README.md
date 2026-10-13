@@ -358,8 +358,9 @@ displacement. Please keep new styles in that key — details in [CLAUDE.md](CLAU
 ### Where large assets go
 
 Everything the pages show goes under `assets/<project>/` and deploys with the site —
-**compressed first**: video becomes animated AVIF (teasers stay H.264 because they
-need a seek bar and some have sound), images become WebP. Keep each file under
+**compressed first**: video becomes animated AVIF, images become WebP. Teasers are
+the exception and stay as the original file, unconverted (they need a seek bar and
+some have sound). Keep each file under
 25MiB, the per-file limit for Cloudflare Workers static assets, and the whole site
 under GitHub Pages' 1GB. When an animated image goes in a carousel or figure, give
 the section a `ratio` (the image's aspect ratio). Commands and the quality bar are in
@@ -370,11 +371,12 @@ The originals stay in the HF datasets `huanngzh/page-assets` and
 compressed copies.
 
 3D models, the CCM workflow assets and the MultiLive PDF are the exception: about
-730MB together, too much for the repo, so they sit in external storage. The prefixes
+730MB together, too much for the repo, so they sit in external storage. So do the
+teasers over a per-file limit (EdenLive's 117MB, MultiLive's 38MB). The prefixes
 are constants at the top of `data/projects.js`; entries only write the rest of the path:
 
 ```js
-const ASSETS = 'https://…/';                 // external storage: 3D models, CCM, PDF only
+const ASSETS = 'https://…/';                 // external storage: 3D models, CCM, PDF, oversized teasers
 const MS3 = ASSETS + 'assets/mira-scene/3d/';
 const SW = 'assets/stereo-world/';           // everything else is in the repo
 const MS = 'assets/mira-scene/';

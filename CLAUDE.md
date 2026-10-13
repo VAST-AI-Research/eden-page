@@ -20,8 +20,8 @@ project_page/
 │   ├── logo.svg          # header 里的标志（由 site.logo 引用，见「标志」一节）
 │   ├── favicon.svg       # 标签页图标（logo 的 16px 版，index.html 里单独引用）
 │   ├── thumbs/*.jpg      # 列表卡片缩略图（生成的示意图，见「缩略图」一节）
-│   ├── edenlive/clips/   # EdenLive 的 60 张动图（条带 + 四节应用）+ 宣传片，见「素材」
-│   ├── {multilive,mira-scene,stereo-world}/ # 三篇论文的动图、图片、宣传片
+│   ├── edenlive/clips/   # EdenLive 的 60 张动图（条带 + 四节应用），见「素材」
+│   ├── {multilive,mira-scene,stereo-world}/ # 三篇论文的动图、图片，以及两段宣传片原片
 │   └── placeholder/*.svg # 占位素材，真素材进来后应逐步删除
 └── README.md             # 面向使用者的替换/部署说明
 ```
@@ -462,22 +462,9 @@ for s in (34,26,16):
 
 - **视频 → 动态 AVIF**，命令和画质底线见「轮播和插图里的动图」和「滚动条带」两段。
   Mira-Scene 的流程图原本是 4.6MB 的 GIF，也转成了 AVIF（线条图用 CRF 30，465KB）。
-- **宣传片保留 H.264**（要能拖进度条，有的带声音），都加了 `+faststart`，
-  不然要等文件末尾的索引下完才开始播：
-
-  ```bash
-  # MultiLive、Mira-Scene：CRF 23。StereoWorld 那段原本就只有 21MB，只重封装（-c copy）。
-  ffmpeg -i demo.mp4 -c:v libx264 -preset slow -crf 23 -pix_fmt yuv420p -c:a copy \
-    -movflags +faststart out.mp4
-  # EdenLive 的原片 117MB，要塞进 25MiB 只能按体积倒推码率，两遍编码
-  ffmpeg -i e64ab20b.mp4 -c:v libx264 -preset veryslow -x264-params aq-mode=3 -b:v 1990k \
-    -pass 1 -an -f mp4 /dev/null
-  ffmpeg -i e64ab20b.mp4 -c:v libx264 -preset veryslow -x264-params aq-mode=3 -b:v 1990k \
-    -pass 2 -c:a aac -b:a 96k -movflags +faststart out.mp4
-  ```
-
-  EdenLive 这段压完 24.3MiB，VMAF 88.2、最差 1% 74.1，低于动图那条线 ——
-  体积卡死了码率，快速运动的镜头会软一点，看过可以接受。720p 同码率反而更差（85.9）。
+- **宣传片用原片，不转码**（要能拖进度条、有的带声音，画质也不打折）。Mira-Scene、
+  StereoWorld 两段在仓库里；EdenLive 那段 117MB 超过 GitHub 单文件 100MiB 的上限，
+  MultiLive 那段 38MB 超过 Workers 的 25MiB，这两段放在外部存储（见下面的「例外」）。
 - **图片 → WebP**（quality 90，宽于 2400 的先缩到 2400）：PNG 一律转，JPEG 超过
   300KB 才转，转完省不到 25% 的保留原图。缩略图按「缩略图」一节保持 JPEG。
 
@@ -490,13 +477,13 @@ for s in (34,26,16):
 往仓库里放素材守住几条线：
 
 - **单个文件不超过 25MiB** —— Cloudflare Workers 静态资源的上限，超了预览环境部署不上去。
-  GitHub 单文件 50MiB 起报警，整站要留在 GitHub Pages 的 1GB 以内。
+  GitHub 单文件 50MiB 起报警、100MiB 直接拒收，整站要留在 GitHub Pages 的 1GB 以内。
 - **重新生成会让历史变胖**：每覆盖一次，旧文件都永久留在 git 历史里，
   所以调参数先在本地挑好，定稿了再提交。
 - `index.html` 的 `og:image` 兜底值是站点域名下的绝对地址（爬虫要绝对地址），换域名时记得改。
 
-**例外：三维模型、CCM workflow 的素材和 MultiLive 的论文 PDF 不在仓库**，放在外部存储
-（GLB 单个 7~78MB，连 CCM 一共约 730MB，进仓库会顶到 Pages 的 1GB）。
+**例外：三维模型、CCM workflow 的素材、MultiLive 的论文 PDF，以及上面那两段宣传片原片
+不在仓库**，放在外部存储（GLB 单个 7~78MB，连 CCM 一共约 730MB，进仓库会顶到 Pages 的 1GB）。
 基地址是 `data/projects.js` 顶部的 `ASSETS`（`MS3` 从它派生），
 `pages/ccm-workflow/data/manifest.json` 里写死了同一个地址（JSON 引用不了常量），
 **换地址时两处一起改**。这个地址必须允许跨域 GET：三维查看器用 `fetch` 拉 GLB，
@@ -663,8 +650,8 @@ SECTION_RENDERERS → 首页/列表渲染 → 交互 init* → 路由 → `rende
 （只给前者，Tab 还是会跳进看不见的视频里）、页码用 `aria-live="polite"` 播报、
 圆点的点击区域靠 `::after` 撑到 24px（视觉上还是 7px，但手指点得中）。
 
-素材必须压缩后再进 `assets/`：图片过 TinyPNG，视频建议 H.264 mp4 且控制在几 MB 内，
-teaser 视频给 `poster`。图片默认 `loading="lazy"`。
+素材必须压缩后再进 `assets/`：图片过 TinyPNG，视频建议 H.264 mp4 且控制在几 MB 内
+（宣传片例外：用原片、不转码，见「素材」），teaser 视频给 `poster`。图片默认 `loading="lazy"`。
 
 ## 部署
 
@@ -683,10 +670,10 @@ teaser 视频给 `poster`。图片默认 `loading="lazy"`。
   `teaser` / 两张流程图 / 四节应用的 carousel / `thumb` 都还指向
   `assets/placeholder/*.svg`，数据里每处都留了 `TODO:` 注释。
   链接（论文/代码/权重/demo）也还是 `href: "#"`。
-- **EdenLive 的 61 段素材**（条带 27 + 宣传片 + 四节应用 33）在仓库的
-  `assets/edenlive/clips/` 下，由 `data/projects.js` 顶部的 `EL` 常量指向；
+- **EdenLive 的 61 段素材**（条带 27 + 宣传片 + 四节应用 33）：除了宣传片，都是仓库
+  `assets/edenlive/clips/` 下同短码的 `.avif` 动图，由 `data/projects.js` 顶部的 `EL`
+  常量指向；宣传片是原片，在外部存储。原视频见「素材」一节，
   短码和 `artifacts/` 原文件名的对照在 `data/edenlive-clips.md`。
-  宣传片是压过的 `.mp4`，其余都是同短码的 `.avif` 动图（原视频见「素材」一节）。
   两张流程图要照 `artifacts/.../Images_attachments/` 里那两张（`-realtime-v4` 和
   `-interaction`）重画成站点配色，不要直接用原图 —— 它们是绿色系，和全站的紫/青不搭。
   另外文案里 `>24 fps`、分钟级、百毫秒级延迟这几个数字是对外口径的下限，

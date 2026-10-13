@@ -16,14 +16,14 @@
  * ========================================================================== */
 
 /* 页面素材都在本仓库的 assets/ 下，跟站点一起部署；下面的前缀都是相对 index.html 的路径。
- * 进仓库前都压过：视频转成动态 AVIF（宣传片除外，仍是 H.264 视频），图片转 WebP，
- * 单个文件不超过 25MiB（Cloudflare Workers 静态资源的上限）。做法见 CLAUDE.md 的「素材」一节。
+ * 进仓库前都压过：视频转成动态 AVIF，图片转 WebP，单个文件不超过 25MiB
+ * （Cloudflare Workers 静态资源的上限）。宣传片例外：用原片、不转码。做法见 CLAUDE.md 的「素材」一节。
  * 原件在 HuggingFace dataset（huanngzh/page-assets、ToRealU/eden-page-assets）里，路径和
  * 这里一一对应 —— 要换参数重转就从那边取，别拿压过的再压一遍。
  *
- * 例外是三维模型（GLB / PLY）、CCM workflow 页的素材和 MultiLive 的论文 PDF，
- * 还放在外部存储，地址是 ASSETS。pages/ccm-workflow/data/manifest.json 里也写死了
- * 同一个地址，换的话两处一起换。 */
+ * 例外是三维模型（GLB / PLY）、CCM workflow 页的素材、MultiLive 的论文 PDF，以及超过
+ * 单文件上限的两段宣传片原片（EdenLive、MultiLive），放在外部存储，地址是 ASSETS。
+ * pages/ccm-workflow/data/manifest.json 里也写死了同一个地址，换的话两处一起换。 */
 const ASSETS = 'https://pub-9ddd2b0bd15e4006998cffc067402d86.r2.dev/';
 
 /* StereoWorld：assets/stereo-world/{videos,images,stereo_video,stereo_depth,flex_demo,ar_demo,inpaint_demo}/ */
@@ -59,13 +59,13 @@ const MS3 = ASSETS + 'assets/mira-scene/3d/';
  * 缩到 288px 存盘在高分屏和详情页切换器上都会糊，交给浏览器按 CSS 缩放。 */
 const TH = 'assets/thumbs/';
 
-/* MultiLive 的页面素材（宣传片、12 张动图、5 张图片）。论文 PDF 还在外部存储（见 links）。 */
+/* MultiLive 的页面素材（12 张动图、5 张图片）。宣传片和论文 PDF 在外部存储（见 teaser 和 links）。 */
 const ML = 'assets/multilive/';
 
 /* EdenLive 的素材在 assets/edenlive/clips/ 下。文件名是随机短码，不带分辨率和模型名。
  * 短码与本地 artifacts/ 原文件名的对照在 data/edenlive-clips.md。
  *
- * 宣传片 e64ab20b.mp4 是视频，其余都是同名的 <短码>.avif 动图（60 张共 153MB）：
+ * 宣传片 e64ab20b.mp4 是原片，在外部存储（见 teaser）；其余都是同名的 <短码>.avif 动图（60 张共 153MB）：
  *   作品带 27 格：clip 前 12 秒（5 秒 wipe + 7 秒生成画面）缩到 500×288，每张约 190KB。
  *     27 路 832×480、约 4Mbps 的视频同时播，带宽供不上。生成命令见 CLAUDE.md「滚动条带」。
  *   四节应用轮播 33 张：整段转，见 app-game 的注释。
@@ -281,10 +281,10 @@ window.SITE_DATA = {
         en: "EdenLive will be open-sourced by 2026.10.18!",
       },
 
-      /* 宣传片。TL;DR 之后、摘要之前的那一段。带声音，所以仍是视频（不转动图）。
-       * 原片 117MB，压到了 24MB：Workers 静态资源单个文件上限 25MiB，再大部署不上去。 */
+      /* 宣传片。TL;DR 之后、摘要之前的那一段。带声音，所以仍是视频，用原片、不转码。
+       * 原片 117MB，超过 GitHub 单文件 100MB 的上限，进不了仓库，放在外部存储。 */
       teaser: {
-        src: EL + "e64ab20b.mp4",
+        src: ASSETS + "assets/edenlive/clips/e64ab20b.mp4",
       },
 
       /* 数字以最终模型实测为准，现在填的是对外口径的下限 */
@@ -770,8 +770,9 @@ window.SITE_DATA = {
         { label: "Code", href: "https://github.com/VAST-AI-Research/MultiLive", icon: "github" },
       ],
 
+      // 宣传片用原片、不转码。38MB 超过 Workers 静态资源单个文件 25MiB 的上限，放在外部存储
       teaser: {
-        src: ML + "teaser.mp4",
+        src: ASSETS + "assets/multilive/teaser.mp4",
         poster: ML + "teaser.jpg",
         autoplay: false,
         loop: false,
