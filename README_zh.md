@@ -92,7 +92,7 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
     en: "One line on what it does and why it is better.",
   },
   // 列表卡片缩略图，必须 16:10。现有两篇论文用的是生成的示意图（统一风格、
-  // 托管在 HF，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
+  // 放在 R2，走顶部的 TH 常量），做法和验收标准见 CLAUDE.md 的「缩略图」一节。
   thumb: TH + "my-project.jpg",
 
   // 会议信息：标题下方一行居中排版。没中会议就把这几行删掉，整块自动消失。
@@ -330,36 +330,41 @@ subtitle: { zh: "还没来得及翻译" },    // 英文模式下也显示中文
 
 ### 大素材放哪
 
-小图（几百 KB 的缩略图、teaser 封面）直接进 `assets/`。**大批量视频不要进 git** ——
-仓库会被拖垮，GitHub Pages 也有 1GB 软限。这种走我们自己的 HF dataset：
+小图（几百 KB 的缩略图、teaser 封面）直接进 `assets/`。**大批量视频和三维模型不要进 git** ——
+仓库会被拖垮，GitHub Pages 也有单文件 100MiB、整站 1GB 的上限。
+
+视频转成的动态 AVIF 是例外：转完通常只剩几 MB，可以直接进 `assets/`，跟站点一起部署
+（EdenLive 和三篇论文的 122 张就在 `assets/` 下，路径和 R2 一致）。单张别超过 25MiB；
+放进轮播或插图时那一节要写 `ratio`（画面宽高比），做法见 CLAUDE.md 的「轮播和插图里的动图」。
+其余大素材放 Cloudflare R2：
 
 ```
-huanngzh/page-assets  →  assets/<项目名>/...
+R2 桶 eden-page-assets（Vast 账号）  →  assets/<项目名>/...
 ```
 
-数据里用一个常量存基地址，条目里只写相对路径，将来换托管只改一行。
-现在有三个，都在 `data/projects.js` 顶部：
+数据里用一个常量存基地址，条目里只写相对路径。都在 `data/projects.js` 顶部：
 
 ```js
-const SW = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/stereo-world/';
-const MS = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/mira-scene/';
-const TH = 'https://huggingface.co/datasets/huanngzh/page-assets/resolve/main/assets/thumbs/';
+const ASSETS = 'https://pub-….r2.dev/';   // 桶的公开地址，换域名、套 CDN 只改这一行
+const SW = ASSETS + 'assets/stereo-world/';
+const MS = ASSETS + 'assets/mira-scene/';
+const TH = ASSETS + 'assets/thumbs/';
 // 用的时候：src: SW + "videos/demo.mp4"
 ```
 
-两个坑：URL 必须是 `resolve/main`（直出文件本体），写成 `blob/main` 会拿到网页版
-预览页；HF 会 302 到一个**带签名、会过期**的 CDN 地址，别把 302 之后的地址抄进数据里。
-
-上传（token 要 write 权限。别写进仓库、也别直接打在命令行上 —— 命令行参数
-同机器上别人 `ps` 就能看到，用环境变量或 `hf auth login` 交互登录）：
+上传用 wrangler（先 `npx wrangler login` 登录一次。登录的人能看到不止一个账号时，
+要用 `CLOUDFLARE_ACCOUNT_ID` 指定 Vast，ID 在 `npx wrangler whoami` 里）：
 
 ```bash
-export HF_TOKEN=<你的 write token>     # 或者跑一次 hf auth login
-hf upload huanngzh/page-assets <本地目录> assets/<项目名> --repo-type=dataset
+CLOUDFLARE_ACCOUNT_ID=<Vast 账号 ID> npx wrangler r2 object put \
+  eden-page-assets/assets/<项目名>/videos/x.mp4 --file videos/x.mp4 \
+  --content-type video/mp4 --cache-control "public, max-age=604800" --remote
 ```
 
-本地目录的子目录结构会原样搬到 repo 里，所以按 `videos/ images/ ...` 分好再传，
-数据里就能直接写 `SW + "videos/x.mp4"`。
+一次传一个文件，批量就写个循环。两个坑：`--content-type` 一定要给，不给就成了
+`application/octet-stream`；对象带 7 天缓存，**同一个地址覆盖上传后，老读者最多 7 天
+内还会看到旧文件**。要立刻生效就换文件名，或者在数据里加 `?v=2`（R2 会忽略查询串，
+MultiLive 的 `?v=dial4` 就是这么用的）。
 
 ## 部署
 
