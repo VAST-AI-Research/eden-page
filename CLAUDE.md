@@ -66,69 +66,58 @@ const NAV_SOURCE = { project: 'projects', research: 'papers', blog: 'posts' };
 项目切换器只在 detail 视图出现，且只列**同栏目**的条目 —— 跨栏目跳转走 header
 主导航。列表页会 `switcher.hidden = true`。
 
-## 中英双语（i18n）
+## 语言
 
-**数据里任何面向读者的字段都可以写成 `{ zh: "中文", en: "English" }`**，也可以直接写
-一个字符串 —— 那就两种语言共用（人名、会议名、数字、代码、URL 都适合这样）。
-某个语言缺失会自动回落到另一个，不会渲染出空白或 `undefined`。
+**站点只有英文。** 内容字段直接写字符串，不要再写 `{ zh, en }`。人名、会议名、
+数字、代码、URL 同样是字符串。
 
-两个取值函数，**别绕过它们直接读数据字段**：
+两个取值函数：
 
-- `t(v)` —— 取内容字段。`t({zh,en})` 按当前语言返回；传字符串/数字原样返回；
-  传不含 `zh`/`en` 键的对象（比如 `{src, poster}`）也原样返回，不会误伤结构化数据。
-- `ui(key, ...args)` —— 取界面文案（按钮、提示、"查看全部 N 项"这类）。
-  文案表在 `UI` 常量里，`zh` 和 `en` 两份必须同时加，漏了会回落到中文。
+- `t(v)` —— 内容字段归一化。字符串原样返回；只含 `en` 一个键的对象（旧数据漏改时）
+  取 `en`；别的对象（`{src, poster}`、`{name, url}`）原样返回，不会误伤结构化数据。
+  新代码直接写字符串即可，套不套 `t()` 结果一样。
+- `ui(key, ...args)` —— 取界面文案（按钮、提示、"View all N"这类）。
+  文案表是 `js/app.js` 顶部的 `UI` 常量，只有一份英文。
 - `plain(v)` —— `t()` 之后再剥掉标题里的 `*` 强调标记，用于 meta、`aria-label`、
   切换器按钮这些纯文本场合。
 
-**改动时最容易犯的三个错：**
+**变量名 `t` 会遮蔽内容取值函数。** 历史上 `renderHero` 用 `const t = el('figure')`、
+`table()` 用 `const t = el('table')`、`initLightbox` 用 `forEach((t) => ...)`，
+现在都改名了（`fig` / `table` / `tile`）。写新代码不要再用 `t` 当局部变量名。
 
-1. **变量名 `t` 会遮蔽 i18n 函数。** 历史上 `renderHero` 用 `const t = el('figure')`、
-   `table()` 用 `const t = el('table')`、`initLightbox` 用 `forEach((t) => ...)`，
-   现在都改名了（`fig` / `table` / `tile`）。写新代码不要再用 `t` 当局部变量名。
-2. **新增渲染分支忘了套 `t()`。** 任何 `esc(x)` / `rich(x)` 里的 `x` 只要来自数据，
-   就必须是 `t(x)`。忘了的话中文模式下会显示成 `[object Object]`。
-3. **界面文案硬编码中文。** 新加的按钮文字、空状态提示走 `ui()`，别直接写字符串。
-
-语言状态存在 `localStorage['pp-lang']`，首次访问按 `navigator.language` 猜。
-切语言的实现是 `initLang(rerender)`：改 `LANG` → 重画 header/页脚的静态文案和
-`aria-label` → 调 `rerender()` 原地重渲染当前视图。**不改 URL、不跳回顶部**
-（所以语言不体现在链接里，分享出去的链接会用对方自己的语言偏好打开）。
-
-`document.documentElement.lang` 会跟着切成 `zh-CN` / `en`。
-`index.html` 里那些静态 `aria-label` 和 skip-link 文字是无 JS 时的兜底值，
-运行时由 `initLang()` 的 `paint()` 覆盖 —— 加新的静态文案记得往 `paint()` 里补一行。
+`document.documentElement.lang` 固定是 `en`。`index.html` 里那些静态 `aria-label`
+和 skip-link 文字是无 JS 时的兜底值，运行时由 `initLang()` 的 `paint()` 覆盖 ——
+加新的静态文案记得往 `paint()` 里补一行。
 
 ## 数据契约（data/projects.js）
 
-下面标 `L` 的字段可以写 `{zh, en}`（也可以写纯字符串两语共用）；
-没标的是 URL、id、枚举值这类不该翻译的。
+所有给人看的字段都是字符串。
 
 ```js
 window.SITE_DATA = {
   site: {
-    team L, teamShort L, tagline L, logo,
-    links: [{ label L, href, icon }],
-    footer: { note L, credit L, contact },       // credit 可省略，省了整行隐藏
+    team, teamShort, tagline, logo,
+    links: [{ label, href, icon }],
+    footer: { note, credit, contact },           // credit 可省略，省了整行隐藏
   },
-  home: { title L, intro L },                    // 首页 hero，title 支持 *星号* 强调
-  nav: [{ key, label L, title L, intro L }],     // key ∈ project | research | blog
+  home: { title, intro },                        // 首页 hero，title 支持 *星号* 强调
+  nav: [{ key, label, title, intro }],           // key ∈ project | research | blog
   projects: [ ... ],                             // Project 栏目，结构同下，一般无 venue/bibtex
   posts: [ ... ],                                // Blog 条目，结构同下
   papers: [{                                     // Research 栏目
-    id, date, thumb, keywords: [L],
-    title L, short L, subtitle L,
-    venue L, badge L, venueNote L,               // venue 一般不用翻，写字符串即可
-    authors: [{ name L, url, affil: [1,2], note L, bold: true }],   // bold = 重点作者
-    affiliations: [L],         // 数组下标+1 对应 authors[].affil 里的数字
-    authorNotes L,
-    links: [{ label L, href, icon }],
-    teaser: { src, poster, alt L, caption L },
-    highlights: [{ value L, label L }],
-    abstract L,
+    id, date, thumb, keywords: [],
+    title, short, subtitle,
+    venue, badge, venueNote,
+    authors: [{ name, url, affil: [1,2], note, bold: true }],   // bold = 重点作者
+    affiliations: [],          // 数组下标+1 对应 authors[].affil 里的数字
+    authorNotes,
+    links: [{ label, href, icon }],
+    teaser: { src, poster, alt, caption },
+    highlights: [{ value, label }],
+    abstract,
     sections: [...],           // 有序，见下
-    bibtex,                    // 代码，不分语言
-    acknowledgements L,
+    bibtex,
+    acknowledgements,
   }]
 }
 ```
@@ -149,8 +138,8 @@ window.SITE_DATA = {
 渲染成 `<strong>` 而不是纯 CSS 类，屏幕阅读器也能听出这个强调；CSS 里字重写死 710
 而不是靠 `bolder` —— 那是相对父级算的，链接里父级 560、纯文本 400，同一行会粗细不一。
 
-表格的 `columns[]` 和 `rows[][]` 里**每个单元格**都能单独写 `{zh, en}`，
-数字列直接写字符串就行 —— 见 `data/projects.js` 里 mira-sim-bench 的表格。
+表格的 `columns[]` 和 `rows[][]` 里每个单元格都是字符串 —— 见 `data/projects.js`
+里 mira-sim-bench 的表格。
 
 ### 标题强调
 
@@ -163,17 +152,15 @@ window.SITE_DATA = {
 
 ```js
 title:           "Mira-Scene: *Pixel-Aligned Layouts* for Generative 3D Scene Reconstruction",
-titleBreakAfter: { zh: "", en: "Mira-Scene: *Pixel-Aligned Layouts*" },
+titleBreakAfter: "Mira-Scene: *Pixel-Aligned Layouts*",
 ```
 
-三个坑：
+两个坑：
 
 - **前缀要连星号一起写** —— 匹配是在原始字符串上做的，不是渲染后的 HTML。
 - **只作用于详情页 hero。** 列表卡片和切换器仍走 `titleHTML()`，那两处宽度小得多，
   硬塞 `<br>` 会在不该断的地方断开。720px 以下 CSS 也会把这个断点取消
   （窄屏每行本来就放不下，再强制断只会多出一行很短的）。
-- **某个语言不需要断行就显式写空串**，别省略那个 key。省略的话 `t()` 会回落到
-  另一个语言的前缀 —— 大概率匹配不上、结果也对，但那是靠巧合，改标题时容易出意外。
 
 前缀对不上（改了标题忘了改前缀）会整句照原样输出，不会渲染出半截标题。
 配套地，论文详情页的标题行宽是 36ch 而不是 `.hero__title` 默认的 26ch ——
@@ -708,15 +695,11 @@ SECTION_RENDERERS → 首页/列表渲染 → 交互 init* → 路由 → `rende
   `data/projects.js` 顶部各常量的注释。Mira-Scene 的 `scenes/` 里文件名就是原站
   manifest 的 case id，`astra/` 加了 `01..06` 前缀保留原站的展示顺序。
 - **没有在浏览器里视觉验证过。** 到目前为止的检查都是静态的（`node --check`、
-  CSS 括号平衡、CSS 变量收支、class/id 交叉引用、路由分发和 i18n 回落的 headless
-  单测）。视觉效果需要人工过目。
-- **语言不进 URL。** 切语言只改 `localStorage` 和内存状态，分享出去的链接会按对方
-  自己的语言偏好打开。如果以后需要「发中文链接给中文读者」，得加 `?lang=zh` 到
-  `parseRoute()` / `urlFor` 里，并在 `updateMeta()` 补 `hreflang` 交替链接。
+  CSS 括号平衡、CSS 变量收支、class/id 交叉引用、路由分发的 headless 单测）。
+  视觉效果需要人工过目。
 - 目前没有生成静态子页（`/research/xxx.html`）。若之后需要更好的 SEO 和 arXiv 引用
   友好度，可以写个脚本从 `SITE_DATA` 预渲染，`updateMeta()` 里已经按 view 分好了
   title/description/og:image/canonical，预渲染时可以直接复用。
-  注意双语站预渲染要出两套页面（`/zh/...` 和 `/en/...`）才有 SEO 意义。
 - Google Fonts 是外链，当前是 Google Sans Flex（正文/标题）+ Google Sans Code
   （代码）。内网/离线环境要自托管字体，删 `index.html` 里那三行 link
   即可回落到系统字体栈。中文这套字体不覆盖，落到 PingFang / 雅黑。

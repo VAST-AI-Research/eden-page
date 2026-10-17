@@ -297,23 +297,6 @@ table { border-collapse: collapse; }
 }
 @media (max-width: 560px) { .header-nav { margin-left: var(--space-3); } }
 
-/* 语言切换：和主题按钮同一体系，只是里面是字不是图标。
- * 宽度固定，避免"中"和"EN"来回切时 header 抖动。 */
-.lang-btn {
-  display: inline-grid; place-items: center; flex: 0 0 auto;
-  min-width: 35px; height: 35px; padding: 0 .45rem;
-  border-radius: var(--radius-sm);
-  background: transparent; border: 1px solid transparent; cursor: pointer;
-  color: var(--text-muted);
-  font-size: var(--step--1); font-weight: 600; letter-spacing: .02em;
-  font-variant-numeric: tabular-nums;
-  transition: background var(--dur) var(--ease), color var(--dur) var(--ease),
-              border-color var(--dur) var(--ease);
-}
-.lang-btn:hover {
-  background: var(--bg-sunken); color: var(--text-strong); border-color: var(--hairline);
-}
-
 .icon-btn {
   display: inline-grid; place-items: center; flex: 0 0 auto;
   width: 35px; height: 35px; border-radius: var(--radius-sm);
@@ -630,6 +613,24 @@ table { border-collapse: collapse; }
   margin: 0; color: var(--text);
   font-size: var(--step-1); line-height: 1.65; letter-spacing: -0.008em;
 }
+/* subtitle 里写了 <li> 时的两条要点。星标是装饰，颜色用品牌色，
+ * 不靠字号撑分量 —— 正文仍是这句话该有的大小。两条之间留出间隙，
+ * 各自左对齐，整列在 74ch 里居中。 */
+.tldr__list {
+  list-style: none; margin: var(--space-4) auto 0; padding: 0;
+  display: flex; flex-direction: column; gap: var(--space-3);
+  max-width: 62ch; text-align: left;
+}
+.tldr__list li {
+  display: flex; align-items: flex-start; gap: .7rem;
+  color: var(--text);
+  font-size: var(--step-0); line-height: 1.6; letter-spacing: -0.006em;
+}
+.tldr__mark {
+  flex: 0 0 auto; display: inline-flex; margin-top: .28em;
+  color: var(--brand);
+}
+.tldr__mark svg { width: 15px; height: 15px; }
 
 /* 返回栏目的面包屑，在详情页标题上方 */
 .hero__back {

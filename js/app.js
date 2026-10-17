@@ -10,87 +10,8 @@
   const $ = (sel, root = document) => root.querySelector(sel);
   const $$ = (sel, root = document) => Array.from(root.querySelectorAll(sel));
 
-  /* ================================================================ i18n ===
-   * 数据里任何面向读者的字段都可以写成 { zh: "中文", en: "English" }，
-   * 也可以直接写一个字符串（那就两种语言共用，比如人名、数字、代码）。
-   * t() 负责按当前语言取值，缺失的语言回落到另一种，不会渲染出 undefined。
-   * ====================================================================== */
-  const LANGS = ['zh', 'en'];
-  /* 站点目前只展示英文。数据里的 zh 字段保留，但不再读取、也不提供切换。 */
-  let LANG = 'en';
-
-  /** 取当前语言的值。传入字符串/数字则原样返回。 */
-  function t(v) {
-    if (v === null || v === undefined) return '';
-    if (typeof v !== 'object' || Array.isArray(v)) return v;
-    // 只认 zh/en 两个键，别的对象原样返回（避免误伤结构化数据）
-    if (!LANGS.some((k) => k in v)) return v;
-    const other = LANGS.find((k) => k !== LANG);
-    return v[LANG] ?? v[other] ?? '';
-  }
-
-  /** 界面文案（按钮、提示这类不属于内容的字） */
+  /* 站点只有英文。内容直接写字符串，界面文案集中在 UI 里。 */
   const UI = {
-    zh: {
-      skip: '跳到正文', loading: '正在加载…', empty: '这个栏目还没有内容。',
-      noContent: '还没有任何内容。',
-      readMore: '阅读全文', viewProject: '查看项目',
-      viewAll: (n) => `查看全部 ${n} 项`,
-      abstract: '摘要', overview: '概览', bibtex: 'BibTeX', citeUs: '引用',
-      ack: '致谢', tldr: 'TL;DR',
-      stripPause: '暂停背景视频', stripPlay: '播放背景视频',
-      copy: '复制', copied: '已复制',
-      navLabel: '主导航', tocLabel: '章节导航', footerLabel: '页脚链接',
-      pickProject: '选择项目', zoomIn: (c) => `放大查看：${c}`,
-      closePreview: '关闭预览', compareHint: (a) => `对比滑块：向右显示 ${a}`,
-      samples: '样例', prevGroup: '上一组样例', nextGroup: '下一组样例',
-      samplePlay: '播放', samplePause: '暂停',
-      groupOf: (i, n) => `第 ${i} 组，共 ${n} 组`,
-      goToGroup: (i) => `跳到第 ${i} 组`,
-      /* 三维查看器（sceneViewer / compareViewer 两个 section type 用） */
-      viewerLoad: '载入 3D 场景',
-      viewerRelease: '释放 3D 查看器',
-      viewerRetry: '重新载入 3D 场景',
-      viewerIdle: '场景尚未载入。',
-      viewerInit: '正在初始化 3D 查看器…',
-      viewerReleased: '查看器已释放 · 可再次载入',
-      viewerLoading: '正在载入场景与全景图…',
-      viewerLoaded: '已载入 · 拖动旋转 · 滚轮缩放',
-      viewerParsing: '正在解析几何与贴图…',
-      viewerProgressPct: (p) => `正在载入模型 ${p}%`,
-      viewerProgressMB: (mb) => `正在载入模型 ${mb} MB`,
-      viewerLoadedFull: (m, mb) => `已载入 · ${m} 个网格 · ${mb} MB · 点一下画面，然后用 W/A/S/D 移动`,
-      viewerFailed: (msg) => `3D 载入失败：${msg}`,
-      viewerCanvas: '可交互的 3D 场景。拖动旋转，滚轮缩放。',
-      viewerCanvasRoam: '可旋转缩放的 3D 场景。W/A/S/D 移动，R/F 升降，Shift 加速。',
-      viewerEnvRotation: '环境旋转',
-      viewerOverview: '全景视角',
-      viewerView: '视角',
-      viewerReset: '重置视角',
-      viewerSection: '剖切高度',
-      viewerWireframe: '线框',
-      viewerFullscreen: '全屏',
-      viewerFromScratch: '从零搭建',
-      viewerWithMira: '用 Mira-Scene',
-      viewerPickCase: '选择案例',
-      viewerCase: (i) => `案例 ${i}`,
-      // 中文不加空格：英文那条是 "X is not loaded."，直译过来中间会多一个空格
-      viewerNotLoaded: (side) => `${side}尚未载入。`,
-      viewerNoSelection: '未选择场景。',
-      viewerInitSide: (side) => `正在初始化「${side}」查看器…`,
-      viewerFailSide: (side, msg) => `「${side}」载入失败：${msg}`,
-      viewerFullscreenFail: (msg) => `无法进入全屏：${msg}`,
-      ccmWorkflow: '查看 CCM 工作流 →',
-      toLight: '切换到浅色模式', toDark: '切换到深色模式',
-      switchLang: '切换到 English', langShort: '中',
-      contact: '联系我们',
-      loadFailTitle: '内容加载失败',
-      loadFailBody:
-        '没能读到站点数据。确认 <code>data/projects.js</code> 存在并被 index.html 引用；' +
-        '如果你改成了 <code>data/projects.json</code>，需要通过 http 打开页面' +
-        '（例如 <code>python -m http.server</code>），file:// 协议下浏览器会拦掉 fetch。',
-    },
-    en: {
       skip: 'Skip to content', loading: 'Loading…', empty: 'Nothing here yet.',
       noContent: 'No content yet.',
       readMore: 'Read more', viewProject: 'View project',
@@ -140,20 +61,28 @@
       viewerFullscreenFail: (msg) => `Fullscreen unavailable: ${msg}`,
       ccmWorkflow: 'View CCM workflow →',
       toLight: 'Switch to light mode', toDark: 'Switch to dark mode',
-      switchLang: '切换到中文', langShort: 'EN',
       contact: 'Contact',
       loadFailTitle: 'Failed to load content',
       loadFailBody:
         'Could not read the site data. Make sure <code>data/projects.js</code> exists and is ' +
         'referenced from index.html. If you switched to <code>data/projects.json</code>, serve the ' +
         'page over http (e.g. <code>python -m http.server</code>) — browsers block fetch on file://.',
-    },
   };
   /** 界面文案取值：ui('readMore')，带参数的 ui('viewAll', 3) */
   const ui = (key, ...args) => {
-    const v = (UI[LANG] || UI.zh)[key];
+    const v = UI[key];
     return typeof v === 'function' ? v(...args) : (v ?? '');
   };
+
+  /** 内容字段归一化。数据现在都是纯字符串；仍兜住历史的 { en } 写法，
+   *  避免漏改的字段渲染成 [object Object]。别的对象（{ src, poster }、
+   *  { name, url } 这类）原样返回。 */
+  function t(v) {
+    if (v === null || v === undefined) return '';
+    if (typeof v !== 'object' || Array.isArray(v)) return v;
+    if (Object.keys(v).every((k) => k === 'en')) return v.en ?? '';
+    return v;
+  }
 
   /** 转义用户内容里的 HTML，防止 json 里的字符串破坏结构 */
   const esc = (s) =>
@@ -228,8 +157,7 @@
   function renderMedia(src, {
     poster, autoplay = true, controls, alt = '', lazy = false, loop = true,
   } = {}) {
-    // src 可以是 {zh, en}：中英各一份素材（比如带文字的示意图）。
-    // 字符串原样返回，所以别的调用方不受影响。
+    // src 偶尔会是 { en }（旧数据里中英各一份素材时留下的）。字符串原样返回。
     src = t(src);
     if (isVideo(src)) {
       const wantControls = controls === undefined ? !autoplay : controls;
@@ -282,12 +210,8 @@
     if (Array.isArray(p.affiliations) && p.affiliations.length) {
       const list = p.affiliations
         .map((a, i) => {
-          /* 机构有三种写法：纯字符串、{zh, en} 双语串、{ name, url }（name 本身
-           * 也可以是双语对象）。url 给了才变成链接，新标签页打开，和作者名字
-           * 的链接同一套。
-           * 判据是「有没有 name 键」而不是「是不是对象」—— 只看 typeof 的话
-           * {zh, en} 会被当成 { name, url } 去取 a.name，取到 undefined，
-           * 机构名就整个渲染成空（香港大学 / 字节跳动 Pico 都是这么丢的）。 */
+          /* 机构有两种写法：纯字符串，或 { name, url }。url 给了才变成链接，
+           * 新标签页打开，和作者名字的链接同一套。 */
           const hasName = a && typeof a === 'object' && 'name' in a;
           const name = hasName ? a.name : a;
           const url = hasName ? (a.url || '') : '';
@@ -346,7 +270,7 @@
   }
 
   /* 详情页大标题：在 breakAfter 这个前缀之后插一个硬换行，把长标题切成
-   * 人工控制的两行。数据里的字段是 titleBreakAfter（可双语），比如
+   * 人工控制的两行。数据里的字段是 titleBreakAfter，比如
    *   title:           "Mira-Scene: *Pixel-Aligned Layouts* for ... Reconstruction"
    *   titleBreakAfter: "Mira-Scene: *Pixel-Aligned Layouts*"
    * 注意前缀要连星号一起写 —— 匹配是在**原始字符串**上做的，不是渲染后的 HTML。
@@ -576,13 +500,20 @@
       below.append(el('p', { class: 'hero__notice' }, esc(t(p.notice))));
     }
 
-    // TL;DR：一句话说清这篇做了什么。放在按钮/视频条之后、teaser 之前 ——
-    // 标题下面挤着 venue/作者/按钮，这句话在那儿会被当成副标题读过去。
-    // 标签复用 .section__eyebrow，和 Abstract 上面那个 Overview 同一套。
+    // TL;DR：放在按钮/视频条之后、teaser 之前 —— 标题下面挤着 venue/作者/按钮，
+    // 放那儿会被当成副标题读过去。标签复用 .section__eyebrow。
+    // subtitle 里写了 <li> 就按要点列表渲染（每条前面一颗星标），
+    // 否则仍是一句话。走 rich()：subtitle 是我们自己写的字段，允许 HTML。
     if (p.subtitle) {
+      const text = t(p.subtitle);
+      const items = String(text).match(/<li>([\s\S]*?)<\/li>/g);
+      const body = items
+        ? `<ul class="tldr__list">${items.map((li) =>
+            `<li><span class="tldr__mark" aria-hidden="true">${icon('spark')}</span>` +
+            `<span>${li.replace(/<\/?li>/g, '')}</span></li>`).join('')}</ul>`
+        : `<p class="tldr__text">${rich(text)}</p>`;
       below.append(el('div', { class: 'tldr' },
-        `<div class="section__eyebrow">${esc(ui('tldr'))}</div>` +
-        `<p class="tldr__text">${rich(t(p.subtitle))}</p>`));
+        `<div class="section__eyebrow">${esc(ui('tldr'))}</div>${body}`));
     }
 
     // teaser
@@ -1975,9 +1906,8 @@
     if (btn) btn.hidden = true;
   }
 
-  /* ---------------------------------------------------------- 语言切换 ---
-   * 切语言不改 URL、不动滚动位置，只是把整页按新语言重画一遍。
-   * 选择存 localStorage，下次访问沿用。 */
+  /* ---------------------------------------------------------- 静态文案 ---
+   * 把骨架里的 aria-label 和兜底文案刷成 UI 表里的英文。 */
   function initLang() {
     const paint = () => {
       document.documentElement.lang = 'en';
@@ -1987,7 +1917,6 @@
       $('#footer-links').setAttribute('aria-label', ui('footerLabel'));
       $('#switcher-menu').setAttribute('aria-label', ui('pickProject'));
       $('#lightbox-close').setAttribute('aria-label', ui('closePreview'));
-      // 首屏那句"正在加载…"：数据还没渲染上来时也跟着语言走
       const ph = $('#hero-placeholder');
       if (ph) ph.textContent = ui('loading');
       refreshThemeLabel();
@@ -2321,7 +2250,7 @@
     initChrome(data, go);
     initScrollChrome();
     initTheme();
-    // 站点只展示英文；initLang 只负责把静态文案和 aria-label 刷成英文
+    // 站点只有英文；initLang 把骨架里的静态文案和 aria-label 刷成 UI 表里的英文
     initLang();
 
     render(data, parseRoute(data), { scrollTop: false });
