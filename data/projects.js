@@ -88,7 +88,7 @@ window.SITE_DATA = {
     footer: {
       note: "We build generative models for interaction and simulation.",
       // 页脚最下面那行小字。省略的话整行（含上方分隔线）会隐藏。
-      credit: "Design inspired by the Nerfies / academic-project-page lineage.",
+      credit: "© 2026 VAST",
       contact: "mailto:huanngzh@gmail.com",
     },
   },
