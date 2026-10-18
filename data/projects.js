@@ -237,7 +237,7 @@ window.SITE_DATA = {
       authorNotes: "* Equal contribution　† Intern at VAST　‡ Project lead　✉ Corresponding author",
 
       links: [
-        { label: "Paper", href: "https://github.com/VAST-AI-Research/eden-page/raw/master/assets/edenlive/EdenLive-tech-report.pdf", icon: "arxiv" },
+        { label: "Paper", href: ASSETS + "assets/edenlive/EdenLive-tech-report.pdf", icon: "arxiv" },
         { label: "Code", href: "https://github.com/VAST-AI-Research/EdenLive", icon: "github" },
         { label: "Weights", href: "https://huggingface.co/VAST-AI/EdenLive", icon: "hf" },
         { label: "Live Demo", href: "#", icon: "demo" },

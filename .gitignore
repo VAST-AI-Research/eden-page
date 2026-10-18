@@ -6,6 +6,10 @@
 # 本地草稿和中间产物（HTML 报告、logo 草图、缩略图生成的临时件）
 artifacts/
 
+# 技术报告 PDF。40MB，超过 Workers 静态资源单文件 25MiB 的上限，推上去会让部署失败。
+# 页面从 R2 取（assets.vast-eden.ai），本地这份只是上传用的源文件。
+assets/edenlive/*.pdf
+
 # 凭据。HF 的 write token 只从环境变量读，任何时候都不该落进仓库
 .env
 .env.*
@@ -16,6 +20,9 @@ artifacts/
 *.out
 *.log
 nohup.out
+
+# 编译好的二进制工具（ffmpeg 等）。本地用来处理素材，不是站点的一部分。
+scripts/ffmpeg
 
 # 编辑器和系统垃圾
 .DS_Store
