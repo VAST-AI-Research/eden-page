@@ -756,6 +756,20 @@ table { border-collapse: collapse; }
   background: var(--bg-alt); overflow: hidden;
 }
 .frame > img, .frame > video { width: 100%; display: block; }
+.frame[data-preview] > img, .frame[data-preview] > video { cursor: zoom-in; }
+.frame[data-preview] > img:focus-visible, .frame[data-preview] > video:focus-visible {
+  outline: 2px solid var(--brand); outline-offset: -2px;
+}
+.media-preview-trigger {
+  position: absolute; right: .75rem; bottom: .75rem; width: 38px; height: 38px;
+  display: grid; place-items: center; padding: 0; border: 1px solid rgba(255,255,255,.34);
+  border-radius: 50%; color: #fff; background: rgba(12,18,26,.64); cursor: zoom-in;
+  backdrop-filter: blur(7px); transition: background var(--dur) var(--ease), transform var(--dur) var(--ease);
+}
+.media-preview-trigger:hover, .media-preview-trigger:focus-visible {
+  background: rgba(12,18,26,.88); transform: scale(1.06);
+}
+.media-preview-trigger svg { width: 17px; height: 17px; }
 /* 视频在元数据回来之前没有固有高度。全局 height:auto 会把它收成一条线，
    轮播的 overflow:hidden 再把整页裁掉。比例跟轮播成片一致（1280×704），
    写 16:9 会在画面上下留出一条空。 */
@@ -1279,6 +1293,22 @@ table { border-collapse: collapse; }
   display: grid;
   gap: var(--space-4);
 }
+.carousel--image-grid .carousel__page {
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  grid-template-rows: repeat(2, auto);
+}
+.carousel--image-grid .frame > img { aspect-ratio: 1 / 1; object-fit: cover; }
+.carousel--video-grid .carousel__page {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  align-items: start;
+}
+@media (max-width: 720px) {
+  .carousel--image-grid .carousel__page { grid-template-columns: repeat(2, minmax(0, 1fr)); grid-template-rows: none; }
+  .carousel--video-grid .carousel__page { grid-template-columns: 1fr; }
+}
+@media (max-width: 460px) {
+  .carousel--image-grid .carousel__page { grid-template-columns: 1fr; }
+}
 .csample { margin: 0; min-width: 0; }
 .csample__caption {
   margin-top: .5rem; font-size: var(--step--1); color: var(--text-muted);
@@ -1433,6 +1463,25 @@ table.data thead th {
 table.data tbody tr + tr th, table.data tbody tr + tr td { border-top: 1px solid var(--hairline); }
 table.data tbody tr { transition: background 150ms var(--ease); }
 table.data tbody tr:hover th, table.data tbody tr:hover td { background: var(--bg-alt); }
+table.data tbody tr.data__group th {
+  padding: .55rem 1.1rem; text-align: center; color: var(--text-muted);
+  font-size: var(--step--2); font-weight: 650; letter-spacing: .045em;
+  text-transform: uppercase; background: var(--bg-alt); border-top: 1px solid var(--border-strong);
+}
+table.data th.cell-best, table.data td.cell-best { font-weight: 720; color: var(--text-strong); }
+table.data th.cell-red, table.data td.cell-red { background: color-mix(in srgb, #d94444 18%, var(--bg)); }
+table.data th.cell-orange, table.data td.cell-orange { background: color-mix(in srgb, #e59b2f 22%, var(--bg)); }
+table.data tbody tr:hover th.cell-red, table.data tbody tr:hover td.cell-red {
+  background: color-mix(in srgb, #d94444 18%, var(--bg));
+}
+table.data tbody tr:hover th.cell-orange, table.data tbody tr:hover td.cell-orange {
+  background: color-mix(in srgb, #e59b2f 22%, var(--bg));
+}
+.result-group { display: grid; gap: 0; }
+.result-group__block { padding-top: var(--space-2); }
+.result-group__block--separated { margin-top: var(--space-8); padding-top: var(--space-8); border-top: 1px solid var(--border); }
+.result-group__head { margin-bottom: var(--space-5); }
+.result-group__title { font-size: var(--step-1); letter-spacing: -0.018em; }
 /* 我们的方法：加粗 + 极淡底色，不用彩色渐变竖条 */
 table.data tr[data-highlight="true"] th, table.data tr[data-highlight="true"] td {
   background: var(--bg-alt); font-weight: 660; color: var(--text-strong);
