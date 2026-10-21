@@ -519,7 +519,10 @@
     // teaser
     if (p.teaser && p.teaser.src) {
       const fig = el('figure', { class: 'teaser', style: 'margin-inline:0' });
-      const frame = el('div', { class: 'frame' });
+      const frame = el('div', {
+        class: 'frame',
+        'data-preview': p.mediaPreview ? 'true' : null,
+      });
       // teaser 是页面主内容，给控制条（读者要能暂停、拖进度条）。
       // 默认自动播 + 静音，否则浏览器会拦掉自动播放。数据可以覆盖：
       // autoplay: false / loop: false 用在想让读者自己点开的宣传片上。
@@ -530,6 +533,12 @@
         controls: p.teaser.controls ?? true,
         alt: t(p.teaser.alt) || `${plain(p.title)} teaser`,
       }));
+      if (p.mediaPreview && isVideo(t(p.teaser.src))) {
+        frame.append(el('button', {
+          class: 'media-preview-trigger', type: 'button',
+          'aria-label': ui('zoomIn', 'teaser'),
+        }, icon('zoom')));
+      }
       fig.append(frame);
       if (p.teaser.caption) {
         fig.append(el('figcaption', { class: 'caption' }, rich(t(p.teaser.caption))));
@@ -638,10 +647,19 @@
       if (s.body) box.append(el('div', { class: 'prose section__body' }, rich(t(s.body))));
       // figureClass: 数据里可以挂 'figure--compact' 把图限到 35rem（示意图别铺满）
       const fig = el('figure', { class: s.figureClass || '', style: 'margin:2rem 0 0' });
-      const frame = el('div', { class: 'frame' });
+      const frame = el('div', {
+        class: 'frame',
+        'data-preview': s.mediaPreview ? 'true' : null,
+      });
       frame.append(renderMedia(s.src, {
         poster: s.poster, alt: t(s.alt) || t(s.title) || 'figure',
       }));
+      if (s.mediaPreview && isVideo(t(s.src))) {
+        frame.append(el('button', {
+          class: 'media-preview-trigger', type: 'button',
+          'aria-label': ui('zoomIn', t(s.title) || 'video'),
+        }, icon('zoom')));
+      }
       // 动图插图和轮播里的动图样例一样：骨架占位 + 暂停按钮（接线在 initAnimFrames）
       if (isAnim(t(s.src))) {
         animFrame(frame, s.ratio);
@@ -789,8 +807,8 @@
     /* 轮播。给横屏视频用：一页上下叠 perPage 个（默认 2），左右按钮翻页。
      * 和 gallery 的取舍：gallery 是网格 + 点开进灯箱，缩略图小、适合竖图或多图速览；
      * 横屏视频挤在网格里每个都太小，所以这里一次只放两个、给足宽度。
-     * 样例视频不进灯箱，也不给原生控制条：只留一个悬停时出现在正中央的
-     * 播放/暂停按钮（见 initCarousel），进度条、倍速、全屏都不要。 */
+     * 默认只提供中央播放/暂停按钮；controls: true 保留原生控制条。
+     * 详情页 mediaPreview: true 可另外开启图片和视频的放大预览。 */
     carousel(s) {
       const box = el('div');
       if (s.body) box.append(el('div', { class: 'prose section__body' }, rich(t(s.body))));
@@ -805,7 +823,9 @@
       for (let i = 0; i < items.length; i += per) pages.push(items.slice(i, i + per));
 
       const car = el('div', {
-        class: 'carousel' + (s.layout === 'centered' ? ' carousel--centered' : ''),
+        class: `carousel${s.layout === 'centered' ? ' carousel--centered' : ''}` +
+          `${s.kind === 'image-grid' ? ' carousel--image-grid' : ''}` +
+          `${s.kind === 'video-grid' ? ' carousel--video-grid' : ''}`,
         dataset: { per: String(per) }, style: 'margin-top:1.5rem',
         role: 'group', 'aria-roledescription': 'carousel',
         'aria-label': `${plain(s.title) || ui('samples')}`,
@@ -830,22 +850,28 @@
         page.forEach((it) => {
           const cap = t(it.caption) || '';
           const fig = el('figure', { class: 'csample' });
-          const frame = el('div', { class: 'frame' });
-          // lazy：44 个视频一起预载会把 CDN 打满，交给 initCarousel 按页填 src
+          const frame = el('div', {
+            class: 'frame',
+            'data-preview': s.mediaPreview ? 'true' : null,
+          });
+          // Lazy media is hydrated by initCarousel when the page enters view.
           frame.append(renderMedia(it.src, {
             poster: it.poster, alt: cap || 'sample', controls: true, lazy: true,
           }));
-          // 样例视频不要原生控制条（进度条、倍速、全屏都去掉），只留播放/暂停。
-          // 原生 controls 没法只留一个按钮，所以换成自己画的：鼠标移到视频上时，
-          // 正中央浮出一个按钮。视频本身照常自动循环播放，按钮只是让读者能暂停。
-          // 按钮的接线在 initCarousel 里。
+          // 默认轮播只显示中央播放/暂停按钮；数据可以用 controls: true 保留原生条。
           const v = $('video', frame);
-          if (v) { v.removeAttribute('controls'); v.controls = false; }
+          if (s.mediaPreview && v) {
+            frame.append(el('button', {
+              class: 'media-preview-trigger', type: 'button',
+              'aria-label': ui('zoomIn', cap || 'sample'),
+            }, icon('zoom')));
+          }
+          if (v && !s.controls) { v.removeAttribute('controls'); v.controls = false; }
           // 动图样例（.avif / .gif）给同一个按钮：对它来说暂停 = 定格（freezeAnim）。
           // frame--anim 另外挂上骨架：第一帧到之前格子在呼吸，按 s.ratio 占位，见 css。
           const anim = !v && isAnim(t(it.src));
           if (anim) animFrame(frame, s.ratio);
-          if (v || anim) {
+          if ((v && !s.controls) || anim) {
             frame.append(el('button', {
               class: 'csample__toggle', type: 'button',
               'aria-label': ui('samplePause'),
@@ -915,17 +941,49 @@
       table.append(el('thead', {},
         `<tr>${(s.columns || []).map((c) => `<th scope="col">${esc(t(c))}</th>`).join('')}</tr>`));
       const hl = new Set(s.highlightRows || []);
+      const groups = new Set(s.groupRows || []);
       const body = el('tbody');
       (s.rows || []).forEach((r, i) => {
-        const cells = r.map((cell, j) =>
-          j === 0 ? `<th scope="row" style="font-weight:inherit">${esc(t(cell))}</th>`
-                  : `<td>${esc(t(cell))}</td>`).join('');
+        if (groups.has(i)) {
+          body.append(el('tr', { class: 'data__group' },
+            `<th scope="rowgroup" colspan="${Math.max(1, (s.columns || []).length)}">${esc(t(r[0]))}</th>`));
+          return;
+        }
+        const styles = (s.cellStyles || {})[i] || {};
+        const cells = r.map((cell, j) => {
+          const classes = Array.isArray(styles[j]) ? styles[j].join(' ') : '';
+          const classAttr = classes ? ` class="${esc(classes)}"` : '';
+          return j === 0
+            ? `<th scope="row"${classAttr} style="font-weight:inherit">${esc(t(cell))}</th>`
+            : `<td${classAttr}>${esc(t(cell))}</td>`;
+        }).join('');
         body.append(el('tr', { dataset: hl.has(i) ? { highlight: 'true' } : {} }, cells));
       });
       table.append(body);
       scroll.append(table);
       box.append(scroll);
       if (s.footnote) box.append(el('p', { class: 'table-note' }, rich(t(s.footnote))));
+      return box;
+    },
+
+    /* Keep comparison blocks under one TOC entry, with headings inside it. */
+    group(s) {
+      const box = el('div', { class: 'result-group' });
+      (s.items || []).forEach((item, i) => {
+        const block = el('div', {
+          class: `result-group__block${i && item.separate !== false ? ' result-group__block--separated' : ''}`,
+          id: item.id || null,
+        });
+        if (item.title) {
+          const head = el('div', { class: 'result-group__head' });
+          if (item.eyebrow) head.append(el('div', { class: 'section__eyebrow' }, esc(t(item.eyebrow))));
+          head.append(el('h3', { class: 'result-group__title' }, esc(t(item.title))));
+          block.append(head);
+        }
+        const renderer = SECTION_RENDERERS[item.type];
+        if (renderer) block.append(renderer(item));
+        box.append(block);
+      });
       return box;
     },
 
@@ -1197,8 +1255,16 @@
             v.pause();
           }
         });
-        v.addEventListener('play', () => syncToggle(v));
-        v.addEventListener('pause', () => syncToggle(v));
+        v.addEventListener('play', () => {
+          if (v.closest('.carousel__page')?.dataset.active === 'true') delete v.dataset.userPaused;
+          syncToggle(v);
+        });
+        v.addEventListener('pause', () => {
+          if (v.closest('.carousel__page')?.dataset.active === 'true' && !v.ended) {
+            v.dataset.userPaused = 'true';
+          }
+          syncToggle(v);
+        });
         syncToggle(v);
       });
 
@@ -1251,6 +1317,7 @@
         }
         pages.forEach((page, i) => {
           const on = i === cur;
+          if (!on) page.dataset.active = 'false';
           // aria-hidden + inert：读屏和 Tab 都不该进到看不见的页里
           page.setAttribute('aria-hidden', on ? 'false' : 'true');
           if (on) page.removeAttribute('inert'); else page.setAttribute('inert', '');
@@ -1260,11 +1327,19 @@
             if (on) {
               // 当前页自动播。lazy 视频的 autoplay 属性是空的（渲染时还没有 src），
               // 所以这里要显式 play()。用户主动暂停过的不再强行起播，尊重他的选择。
-              if (v.dataset.userPaused === 'true' || !v.paused) return;
+              if (!live || !v.getAttribute('src') || v.dataset.autoplay !== 'true'
+                || v.dataset.userPaused === 'true' || !v.paused) return;
               const pr = v.play();
               if (pr?.catch) pr.catch(() => {});
-            } else if (!v.paused) v.pause();
+            } else {
+              // Remember native-control pauses before hiding this page.
+              if (v.controls && page.dataset.active === 'true') {
+                v.dataset.userPaused = String(v.paused);
+              }
+              if (!v.paused) v.pause();
+            }
           });
+          if (on) page.dataset.active = String(live);
         });
         dots.forEach((d, i) => {
           d.dataset.on = i === cur ? 'true' : 'false';
@@ -1286,9 +1361,9 @@
         d.addEventListener('click', () => show(Number(d.dataset.page)));
       });
 
-      // 键盘左右键翻页。焦点在播放按钮上时也要能翻：
-      // 样例视频没有原生控制条了，左右键不再是快退/快进。
+      // 原生视频控制条保留左右键快退/快进；其他位置用来翻页。
       car.addEventListener('keydown', (e) => {
+        if (e.target.closest('video')) return;
         if (e.key === 'ArrowLeft') { e.preventDefault(); show(cur - 1); }
         else if (e.key === 'ArrowRight') { e.preventDefault(); show(cur + 1); }
       });
@@ -1605,8 +1680,11 @@
     const stage = $('#lightbox-stage');
     const cap = $('#lightbox-caption');
     let lastFocus = null;
+    let suspended = [];
 
     const open = (src, caption) => {
+      suspended = $$('video', root).filter((video) => !video.paused);
+      suspended.forEach((video) => video.pause());
       stage.innerHTML = '';
       stage.append(renderMedia(src, { autoplay: false, alt: caption || '' }));
       cap.textContent = caption || '';
@@ -1619,12 +1697,46 @@
       box.dataset.open = 'false';
       stage.innerHTML = '';
       document.body.style.overflow = '';
+      suspended.forEach((video) => {
+        if (document.contains(video) && video.dataset.userPaused !== 'true') {
+          const promise = video.play();
+          if (promise?.catch) promise.catch(() => {});
+        }
+      });
+      suspended = [];
       if (lastFocus && document.contains(lastFocus)) lastFocus.focus();
     };
     closeLightbox = close;
 
     $$('.tile', root).forEach((tile) => {
       tile.addEventListener('click', () => open(tile.dataset.src, tile.dataset.caption));
+    });
+    // Explicitly opted-in teaser, figure, and carousel media can be opened.
+    $$('[data-preview]', root).forEach((frame) => {
+      const media = $('img, video', frame);
+      if (!media) return;
+      const caption = frame.closest('figure')?.querySelector('figcaption')?.textContent
+        || media.getAttribute('alt') || 'media preview';
+      const show = (event) => {
+        const src = media.getAttribute('src') || media.dataset.src;
+        if (src) { event.preventDefault(); open(src, caption); }
+      };
+      if (media.tagName === 'VIDEO') return;
+      media.tabIndex = 0;
+      media.setAttribute('role', 'button');
+      media.setAttribute('aria-label', ui('zoomIn', caption));
+      media.addEventListener('click', show);
+      media.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter' || event.key === ' ') show(event);
+      });
+    });
+    $$('.media-preview-trigger', root).forEach((button) => {
+      button.addEventListener('click', (event) => {
+        const frame = button.closest('[data-preview]');
+        const media = frame && $('img, video', frame);
+        const src = media?.getAttribute('src') || media?.dataset.src;
+        if (src) { event.preventDefault(); open(src, button.getAttribute('aria-label') || 'media preview'); }
+      });
     });
     $('#lightbox-close').onclick = close;
     box.onclick = (e) => { if (e.target === box) close(); };
@@ -2135,6 +2247,7 @@
     const main = $('#sections');
     // 清 DOM 前先把 WebGL 查看器 dispose 掉。innerHTML='' 只摘 DOM 节点，
     // canvas 背后的 GPU 资源和 rAF 循环不会自己停，切几次视图就把显存吃干。
+    closeLightbox();
     disposeAllViewers();
     main.innerHTML = '';
 

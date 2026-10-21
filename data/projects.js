@@ -51,6 +51,32 @@ const MS3 = MS + '3d/';
  * 见各条目的 thumb。R2 上 assets/thumbs/ 还留着之前的彩色版。
  * 这个常量目前没有其他引用，保留是为了以后要回 R2 或加新缩略图时直接用。 */
 const TH = ASSETS + 'assets/thumbs/';
+/* OPTD 的素材在 R2 的 assets/optd/ 下（64 张 PNG + 32 段 mp4，约 172MB），
+ * 和站点其余素材一样不进仓库。图片文件名带空格（"image 1.png"），
+ * URL 里的空格由浏览器转义，引用处照原名写。 */
+const OPTD_ASSET = ASSETS + 'assets/optd/';
+const OPTD_IMAGE_FILES = [
+  'image.png', ...Array.from({ length: 59 }, (_, i) => `image ${i + 1}.png`),
+];
+const OPTD_IMAGE_ITEMS = OPTD_IMAGE_FILES.map((file) => ({ src: `${OPTD_ASSET}images/${file}` }));
+const OPTD_VIDEO_FILES = [
+  'rank_00_batch_00.mp4', '0053.mp4', '0063.mp4', '0066.mp4',
+  '0103.mp4', '0106.mp4', '0114.mp4', '0151.mp4', '0159.mp4',
+  '0217.mp4', '0276.mp4', '0354.mp4', '0263.mp4', '0300.mp4',
+  '0860.mp4', '0426.mp4',
+];
+const OPTD_VIDEO_ITEMS = OPTD_VIDEO_FILES.map((file) => ({ src: `${OPTD_ASSET}videos/${file}` }));
+const OPTD_CAUSAL_VIDEO_FILES = [
+  'rank_00_batch_02.mp4', 'rank_00_batch_03.mp4', 'rank_00_batch_10.mp4',
+  'rank_00_batch_11.mp4', 'rank_00_batch_13.mp4', 'rank_00_batch_15.mp4',
+  'rank_00_batch_22.mp4', 'rank_00_batch_24.mp4', 'rank_00_batch_26.mp4',
+  'rank_00_batch_28.mp4', 'rank_01_batch_00.mp4', 'rank_01_batch_10.mp4',
+  'rank_01_batch_24.mp4', 'rank_01_batch_33.mp4', 'rank_02_batch_10.mp4',
+  'rank_02_batch_15.mp4',
+];
+const OPTD_CAUSAL_VIDEO_ITEMS = OPTD_CAUSAL_VIDEO_FILES.map((file) => ({
+  src: `${OPTD_ASSET}videos/causal/${file}`,
+}));
 
 /* MultiLive 的页面素材（宣传片、12 张动图、5 张图片、论文 PDF）。 */
 const ML = ASSETS + 'assets/multilive/';
@@ -593,6 +619,164 @@ window.SITE_DATA = {
    * sections 是有序数组，type 决定渲染方式，目前支持：
    *   text | figure | gallery | video | compare | table | features | steps  */
   papers: [
+    {
+    id: 'optd',
+    thumb: OPTD_ASSET + 'teaser-cropped.png',
+    title: 'On-Policy Trajectory Distillation for *Few-Step Generative Modeling*',
+    titleBreakAfter: 'On-Policy Trajectory Distillation for', short: 'OPTD',
+    subtitle: 'Matching the frozen teacher endpoint over the same interval from a state visited by the student.',
+    date: '2026', keywords: ['few-step diffusion distillation', 'on-policy learning', 'image generation', 'video generation'],
+    authors: [
+      { name: 'Haoran Feng', affil: [1] }, { name: 'Yuzhen Wang', affil: [2] },
+      { name: 'Yifan Niu', affil: [2] }, { name: 'Yang-Tian Sun', affil: [3] },
+      { name: 'Lu Sheng', affil: [2], breakBefore: true }, { name: 'Yan-Pei Cao', affil: [4], note: '*' },
+      { name: 'Zehuan Huang', affil: [4], note: '*†' },
+    ],
+    affiliations: ['Tsinghua University', 'Beihang University', 'The University of Hong Kong', 'VAST'],
+    authorNotes: '* Corresponding author　† Project lead', links: [],
+    teaser: {
+      src: OPTD_ASSET + 'teaser-cropped.png',
+      alt: 'OPTD overview across image, bidirectional video, and causal video generation',
+      caption: 'OPTD applies a common endpoint contract to image, bidirectional video, and causal video generation.',
+    },
+    mediaPreview: true,
+    abstract: 'Few-step diffusion models replace a long teacher trajectory with a small number of student updates, but a mismatch between training queries and deployed states can accumulate through later steps. OPTD starts from a state visited by the current student, integrates the frozen teacher across the same interval, and uses the terminal state as the only paired target. The query therefore follows the trajectory the student will actually execute while the supervision remains directly paired with the teacher. We further introduce boundary-matched adversarial refinement for local realism at the same condition and noise boundary, together with an optional perceptual loss in frozen visual features. The same endpoint construction applies to image, bidirectional video, and causal video generation.',
+    sections: [
+      {
+        type: 'figure', id: 'method', eyebrow: 'Core method', title: 'One interval, one paired endpoint',
+        mediaPreview: true,
+        body: '<p>The student first rolls out without gradients to a boundary <code>zᵢ</code>, then takes one coarse update. Starting from the same <code>zᵢ</code>, the frozen teacher takes <code>Kᵢ</code> fine updates across the complete next student interval. The loss compares only the two endpoints. The rollout prefix and teacher trajectory are detached.</p>',
+        src: OPTD_ASSET + 'method-cropped.png', alt: 'OPTD endpoint distillation with boundary-matched adversarial refinement and perceptual loss',
+        caption: '<strong>Endpoint contract.</strong> The student matches the frozen teacher endpoint over the same interval. The adversarial and perceptual branches act on that same student endpoint.',
+      },
+      {
+        type: 'features', id: 'contributions', eyebrow: 'Contributions', title: 'A unified objective for on-policy few-step distillation',
+        items: [
+          { icon: 'check', title: 'On-policy endpoint regression', body: 'Queries are sampled from the current student rollout, directly addressing the train–test state mismatch in few-step sampling.' },
+          { icon: 'spark', title: 'Boundary-aligned supervision', body: 'The student transition is paired with the frozen teacher endpoint over the identical interval, retaining dense and target-specific supervision.' },
+          { icon: 'bolt', title: 'Boundary-matched adversarial refinement', body: 'A conditional discriminator compares generated and real latents at the same next-boundary noise level to improve local distributional fidelity.' },
+          { icon: 'video', title: 'Unified multimodal formulation', body: 'The endpoint construction extends to images, bidirectional video, and causal video with detached autoregressive context.' },
+        ],
+      },
+      {
+        type: 'carousel', id: 'image-more-results', eyebrow: 'Experiment Results', title: 'Image Generation',
+        kind: 'image-grid', mediaPreview: true, perPage: 10, items: OPTD_IMAGE_ITEMS,
+      },
+      {
+        type: 'carousel', id: 'video-more-results', eyebrow: 'Experiment Results', title: 'Bidirectional Video Generation',
+        kind: 'video-grid', controls: true, mediaPreview: true, perPage: 4, items: OPTD_VIDEO_ITEMS,
+      },
+      {
+        type: 'carousel', id: 'causal-video-generation', eyebrow: 'Experiment Results', title: 'Causal Video Generation',
+        kind: 'video-grid', controls: true, mediaPreview: true, perPage: 4, items: OPTD_CAUSAL_VIDEO_ITEMS,
+      },
+      {
+        type: 'group', id: 'image-generation', eyebrow: 'Comparison Results', title: 'Image Comparison',
+        items: [
+          {
+            type: 'figure', id: 'image-qualitative', eyebrow: 'Qualitative Results',
+            mediaPreview: true,
+            title: 'Qualitative Image Comparison',
+            body: '<p>At four steps, OPTD preserves the requested content, coherent composition, and local detail across the shown prompts. Compared with the other distilled models, its outputs show fewer severe crops, missing objects, and texture artifacts.</p>',
+            src: OPTD_ASSET + 'image-comparison-cropped.png',
+            alt: 'Image comparison among FLUX.2, TDM, DMD2, rCM, and OPTD',
+            caption: 'OPTD preserves semantics and local detail with four sampling steps.',
+          },
+          {
+            type: 'table', id: 'image-quantitative', eyebrow: 'Quantitative Results',
+            title: 'Quantitative Image Comparison',
+            body: '<p>NFE denotes the number of function evaluations. Lower FID and higher values for the other metrics are better.</p>',
+            columns: ['Method', 'NFE', 'FID ↓', 'CLIP ↑', 'ImageReward ↑', 'LPIPS ↑', 'GenEval ↑'],
+            rows: [
+              ['Pretrained Models', '', '', '', '', '', ''],
+              ['SD3.5-M', '50', '20.83', '0.3423', '1.0137', '0.7292', '0.700'],
+              ['SD3.5-L', '50', '19.99', '0.3388', '1.0722', '0.7233', '0.710'],
+              ['FLUX.2-klein-base-4B', '50', '21.03', '0.3369', '0.9492', '0.7436', '0.760'],
+              ['Released Distilled Models', '', '', '', '', '', ''],
+              ['SD3.5-L-Turbo', '4', '26.26', '0.3399', '0.9524', '0.6745', '0.700'],
+              ['FLUX.2-klein-4B', '4', '22.44', '0.3427', '1.1096', '0.6860', '0.820'],
+              ['Distillation Methods', '', '', '', '', '', ''],
+              ['LCM', '4', '32.51', '0.3261', '0.4669', '0.6709', '0.680'],
+              ['DMD2', '4', '18.91', '0.3322', '0.7767', '0.6940', '0.690'],
+              ['PFM', '4', '49.09', '0.2771', '0.4676', '0.4322', '0.370'],
+              ['TDM', '4', '31.31', '0.3292', '0.7706', '0.6754', '0.740'],
+              ['rCM', '4', '32.52', '0.3160', '0.6005', '0.7261', '0.589'],
+              ['OPTD', '4', '21.95', '0.3363', '0.8349', '0.7152', '0.745'],
+              ['OPTD + Perceptual', '4', '23.62', '0.3420', '1.0093', '0.6913', '0.750'],
+              ['OPTD + GAN', '4', '15.06', '0.3360', '0.7221', '0.7053', '0.780'],
+              ['OPTD + GAN + Perceptual', '4', '19.23', '0.3369', '0.8651', '0.6982', '0.791'],
+              ['OPTD (4 → 2)', '2', '16.86', '0.3361', '0.6257', '0.6952', '0.756'],
+              ['OPTD (2 → 1)', '1', '16.82', '0.3356', '0.5922', '0.6984', '0.749'],
+            ],
+            groupRows: [0, 4, 7],
+            cellStyles: {
+              3: { 5: ['cell-best'] },
+              6: { 3: ['cell-best'], 4: ['cell-best'], 6: ['cell-best'] },
+              12: { 5: ['cell-red'] },
+              13: { 5: ['cell-orange'] },
+              14: { 3: ['cell-red'], 4: ['cell-red'] },
+              15: { 2: ['cell-red', 'cell-best'], 6: ['cell-orange'] },
+              16: { 3: ['cell-orange'], 4: ['cell-orange'], 6: ['cell-red'] },
+              17: { 2: ['cell-best'] },
+              18: { 2: ['cell-orange'] },
+            },
+            footnote: 'Red and orange cells mark the best and second-best values among the Distillation Methods. Black bold marks the best remaining value in each full column, following the paper table.',
+          },
+          {
+            type: 'text', id: 'image-analysis', separate: false,
+            body: '<p>At four steps, base OPTD surpasses all non-OPTD baselines in the Distillation Methods group on CLIP, ImageReward, and GenEval while retaining competitive diversity. OPTD + GAN achieves the lowest FID in the full table (15.06), whereas OPTD + Perceptual leads the method group in CLIP and ImageReward. Combining both refinements yields the group’s highest GenEval score (0.791), with strong counting and positioning performance. One- and two-step OPTD also outperform four-step DMD2 in FID and GenEval with comparable diversity, at the cost of lower ImageReward.</p>',
+          },
+        ],
+      },
+      {
+        type: 'group', id: 'video-generation', eyebrow: 'Comparison Results', title: 'Bidirectional Video Comparison',
+        items: [
+          {
+            type: 'figure', id: 'video-qualitative', eyebrow: 'Qualitative Results', title: 'Qualitative Bidirectional Video Comparison',
+            mediaPreview: true,
+            body: '<p>The comparison uses four-step Wan2.1-T2V-1.3B models at 832 × 480 resolution over 81 frames. Compared with the oversaturated, mode-seeking appearance of DMD2 in these examples, OPTD preserves more natural colors and textures with smoother temporal evolution.</p>',
+            src: OPTD_ASSET + 'bid_video_comparion.png',
+            alt: 'Bidirectional video comparison among Wan, DMD2, AnyFlow, rCM, and OPTD',
+            caption: 'OPTD maintains stable appearance and coherent temporal changes across the sampled frames.',
+          },
+          {
+            type: 'table', id: 'video-quantitative', eyebrow: 'Quantitative Results', title: 'Quantitative Bidirectional Video Comparison',
+            body: '<p>Total is VBench’s weighted score and Mean is the unweighted mean over its 16 dimensions.</p>',
+            columns: ['Method', 'Steps', 'Resolution', 'Frames', 'Total ↑', 'Quality ↑', 'Semantic ↑', 'Mean ↑'],
+            rows: [
+              ['Pretrained Models', '', '', '', '', '', '', ''],
+              ['Wan2.1-T2V-1.3B', '50', '832 × 480', '81', '75.31', '79.57', '58.27', '0.5844'],
+              ['Released Distilled Models', '', '', '', '', '', '', ''],
+              ['FastWan2.1-T2V-1.3B', '3', '832 × 480', '81', '80.76', '84.34', '66.47', '0.6501'],
+              ['T2V-Turbo-v2', '16', '512 × 320', '16', '85.54', '85.70', '84.92', '0.7382'],
+              ['AnyFlow', '4', '832 × 480', '81', '83.82', '85.21', '78.24', '0.7036'],
+              ['Distillation Methods', '', '', '', '', '', '', ''],
+              ['DMD2', '4', '832 × 480', '81', '81.15', '84.15', '69.15', '0.6804'],
+              ['rCM', '4', '832 × 480', '81', '79.09', '82.38', '65.95', '0.6386'],
+              ['OPTD', '4', '832 × 480', '81', '72.82', '77.46', '54.23', '0.5574'],
+              ['OPTD + Perceptual', '4', '832 × 480', '81', '74.76', '79.09', '57.43', '0.5803'],
+              ['OPTD + GAN', '4', '832 × 480', '81', '82.64', '85.44', '71.45', '0.6837'],
+            ],
+            groupRows: [0, 2, 6],
+            cellStyles: {
+              4: { 4: ['cell-best'], 5: ['cell-best'], 6: ['cell-best'], 7: ['cell-best'] },
+              11: { 4: ['cell-red'], 5: ['cell-red'], 6: ['cell-red'], 7: ['cell-red'] },
+            },
+            footnote: 'Red cells mark the best values among the Distillation Methods. Black bold marks the best value in each full column, following the paper table.',
+          },
+          {
+            type: 'text', id: 'video-analysis', separate: false,
+            body: '<p>At four steps, OPTD + GAN leads the Distillation Methods group across all four VBench summary metrics. Total and Semantic scores improve by 13.5% and 31.8% over base OPTD. Its Quality score also slightly exceeds AnyFlow’s (85.44 vs. 85.21), while AnyFlow retains stronger semantic alignment. The detailed VBench results show gains over base OPTD in motion, appearance, and human action, supporting boundary-matched adversarial refinement as a complement to paired endpoint supervision.</p>',
+          },
+        ],
+      },
+    ],
+    bibtex: `@article{feng2026optd,
+  title={On-Policy Trajectory Distillation for Few-Step Generative Modeling},
+  author={Feng, Haoran and Wang, Yuzhen and Niu, Yifan and Sun, Yang-Tian and Sheng, Lu and Cao, Yan-Pei and Huang, Zehuan},
+  year={2026}
+}`,
+    },
     {
       id: "multilive",
       title: "MultiLive: On-Policy Distillation of Video and Multi-View Priors for *Multi-View Video Generation*",
