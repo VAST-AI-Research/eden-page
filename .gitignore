@@ -3,6 +3,10 @@
 # vendor/ 是**故意提交**的（vendored three.js r180，不引 CDN、不要构建步骤），
 # 别往这里加 vendor/ 或 node_modules/ 之类的规则。
 
+# 内部备忘，不进公开仓库
+CLAUDE.md
+CLOUDFLARE.md
+
 # 本地草稿和中间产物（HTML 报告、logo 草图、缩略图生成的临时件）
 artifacts/
 
