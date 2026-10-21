@@ -24,6 +24,9 @@ nohup.out
 # 编译好的二进制工具（ffmpeg 等）。本地用来处理素材，不是站点的一部分。
 scripts/ffmpeg
 
+# wrangler 本地开发的缓存和状态，每台机器自己重新生成
+.wrangler/
+
 # 编辑器和系统垃圾
 .DS_Store
 Thumbs.db
