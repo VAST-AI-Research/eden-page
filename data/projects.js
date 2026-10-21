@@ -46,9 +46,10 @@ const MS = ASSETS + 'assets/mira-scene/';
  * 查看器实现在 js/viewers/，接线在 js/app.js 的 initSceneViewers()。 */
 const MS3 = MS + '3d/';
 
-/* 列表卡片的缩略图。现在三篇论文的封面已改成仓库内的黑白灰版
- * （assets/research/*.jpg，配合 vast.css 主题），直接相对路径引用，
- * 见各条目的 thumb。R2 上 assets/thumbs/ 还留着之前的彩色版。
+/* 列表卡片的缩略图。四篇论文的封面都在仓库内（assets/research/*.jpg），
+ * 直接相对路径引用，见各条目的 thumb。做法见 CLAUDE.md 的「工作封面」一节：
+ * 一律从该工作自己的结果素材里裁，不画示意图。
+ * R2 上 assets/thumbs/ 还留着更早的示意图版本。
  * 这个常量目前没有其他引用，保留是为了以后要回 R2 或加新缩略图时直接用。 */
 const TH = ASSETS + 'assets/thumbs/';
 /* OPTD 的素材在 R2 的 assets/optd/ 下（64 张 PNG + 32 段 mp4，约 172MB），
@@ -621,7 +622,7 @@ window.SITE_DATA = {
   papers: [
     {
     id: 'optd',
-    thumb: OPTD_ASSET + 'teaser-cropped.png',
+    thumb: 'assets/research/optd.jpg',
     title: 'On-Policy Trajectory Distillation for *Few-Step Generative Modeling*',
     titleBreakAfter: 'On-Policy Trajectory Distillation for', short: 'OPTD',
     subtitle: 'Matching the frozen teacher endpoint over the same interval from a state visited by the student.',
