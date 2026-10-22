@@ -267,7 +267,7 @@ window.SITE_DATA = {
         { label: "Paper", href: ASSETS + "assets/edenlive/EdenLive-tech-report.pdf", icon: "arxiv" },
         { label: "Code", href: "https://github.com/VAST-AI-Research/EdenLive", icon: "github" },
         { label: "Weights", href: "https://huggingface.co/VAST-AI/EdenLive", icon: "hf" },
-        { label: "Live Demo", href: "#", icon: "demo" },
+        { label: "Try on Reactor", href: "https://www.reactor.inc/models/eden-live", icon: "demo" },
       ],
 
       /* 宣传片。TL;DR 之后、摘要之前的那一段。带声音，所以仍是视频，用原片、不转码（117MB）。 */
